@@ -6,3 +6,36 @@
   gap: 1px;
   background: var(--border-color);
 }
+
+.main-content {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--border-color);
+  min-height: 0;
+}
+
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--border-color);
+}
+
+.fleet-panel,
+.map-panel,
+.elevation-panel,
+.thermal-panel,
+.health-panel,
+.regen-panel,
+.charging-panel {
+  background: var(--bg-panel);
+  padding: var(--space-md);
+  overflow: hidden;
+}
+
+.dashboard-header,
+.control-bar {
+  background: var(--bg-panel);
+  padding: var(--space-md);
+}

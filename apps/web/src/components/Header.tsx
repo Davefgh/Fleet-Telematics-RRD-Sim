@@ -1,11 +1,11 @@
 interface HeaderProps {
     fleetCount: number;
     routeDistance: number;
-    avgBatterage: number;
+    avgBattery: number;
     batteryHealth: number;
 }
 
-export function Header({ fleetCount, routeDistance, avgBatterage, batteryHealth
+export function Header({ fleetCount, routeDistance, avgBattery, batteryHealth
 
 }: HeaderProps) {
     return (
@@ -27,7 +27,7 @@ export function Header({ fleetCount, routeDistance, avgBatterage, batteryHealth
             <div className="header-stats">
                 <StatCard label="FLEET VEHICLES" value={`${fleetCount} ACTIVE`} />
                 <StatCard label="ROUTE DISTANCE" value={`${routeDistance} KM`} />
-                <StatCard label="AVG BATTERY AGE" value={`${avgBatterage}`} />
+                <StatCard label="AVG BATTERY AGE" value={`${avgBattery}`} />
                 <StatCard label="BATTERY HEALTH" value={`${batteryHealth}%`} />
             </div>
         </header>

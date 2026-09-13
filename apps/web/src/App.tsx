@@ -1,7 +1,6 @@
 import './App.css';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import type { SimulationResponse, RiskLevel } from '@fleet/api-client';
-import { MOCK_VEHICLES, MOCK_TELEMETRY } from './mockData';
+import { useFleetData } from './hooks/useFleetData';
 import { Header } from './components/Header';
 import { FleetPanel } from './components/FleetPanel';
 import { ControlsBar, type DrivingStyle, type HvacMode, type RegenLevel } from './components/ControlsBar';
@@ -99,13 +98,10 @@ function buildThermalGrid(baseTempC: number, drivingStyle: DrivingStyle, progres
 
 // ──────────────────────────────────────────────────────────────────────────
 function App() {
-    const vehicles = MOCK_VEHICLES;
-    const telemetry = MOCK_TELEMETRY;
+    const { vehicles, telemetry, simulation, loading, error, isSimulating, runSimulation } = useFleetData();
 
     const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>('EV-001');
     const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
-    const [simulation, setSimulation] = useState<SimulationResponse | null>(null);
-    const [isSimulating, setIsSimulating] = useState(false);
 
     // Playback and vehicle controls
     const [isRunning, setIsRunning] = useState(true);
@@ -168,20 +164,30 @@ function App() {
     }, [vehicles]);
 
     const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId) ?? vehicles[0];
+    const activeVehicle = selectedVehicle ?? {
+        id: 'EV-001',
+        name: 'Alpha',
+        model: 'Tesla Model 3',
+        battery_capacity_kwh: 75,
+        baseline_efficiency_wh_km: 160,
+        current_soc: 82.4,
+        current_soh: 96.1,
+        status: 'IN_USE',
+    };
     const selectedTelemetry = selectedVehicleId ? telemetry[selectedVehicleId] : null;
 
     // Dynamically calculate State of Charge curve for the selected vehicle
     const socData = useMemo(() => {
         return buildDynamicSocData(
-            selectedVehicle.current_soc,
-            selectedVehicle.battery_capacity_kwh,
-            selectedVehicle.baseline_efficiency_wh_km,
+            activeVehicle.current_soc,
+            activeVehicle.battery_capacity_kwh,
+            activeVehicle.baseline_efficiency_wh_km,
             drivingStyle,
             hvacMode,
             regenLevel,
             payload
         );
-    }, [selectedVehicle, drivingStyle, hvacMode, regenLevel, payload]);
+    }, [activeVehicle, drivingStyle, hvacMode, regenLevel, payload]);
 
     // Compute pack thermal distribution
     const thermalGrid = useMemo(() => {
@@ -191,57 +197,38 @@ function App() {
     const allTemps = thermalGrid.flat();
     const maxTemp = Math.max(...allTemps);
     const avgTemp = allTemps.reduce((s, t) => s + t, 0) / allTemps.length;
-    const avgSoh = vehicles.reduce((s, v) => s + v.current_soh, 0) / vehicles.length;
+    const avgSoh = vehicles.length > 0
+        ? vehicles.reduce((s, v) => s + v.current_soh, 0) / vehicles.length
+        : 0;
 
-    // ── Run physics simulation computation ─────────────────────────────
+    // ── Delegate simulation to backend via the hook ────────────────────
     const handleRunSimulation = (vehicleId: string) => {
-        setIsSimulating(true);
-        const v = vehicles.find(item => item.id === vehicleId) ?? vehicles[0];
-
-        // Simulate 400ms calculation delay for realistic tactile responsiveness
-        setTimeout(() => {
-            const usableCap = (v.battery_capacity_kwh * (v.current_soh / 100));
-            const styleMult = drivingStyle === 'ECO' ? 0.88 : drivingStyle === 'AGGRESSIVE' ? 1.25 : 1.0;
-            const hvacKw = hvacMode === 'OFF' ? 0 : hvacMode === 'LOW' ? 1.0 : hvacMode === 'MEDIUM' ? 2.2 : 3.8;
-            const regenRecov = regenLevel === 'HIGH' ? 0.82 : regenLevel === 'MEDIUM' ? 0.88 : 0.95;
-            const payloadEff = 1 + (payload / 1000) * 0.12;
-
-            const routeEnergyKwh = ((TOTAL_DISTANCE * v.baseline_efficiency_wh_km * styleMult * payloadEff) / 1000 + (hvacKw * 1.7)) * regenRecov;
-            const currentEnergyKwh = (v.current_soc / 100) * usableCap;
-            const arrivalEnergyKwh = currentEnergyKwh - routeEnergyKwh;
-            const arrivalSocPct = Math.max(0, (arrivalEnergyKwh / usableCap) * 100);
-            const remainingRangeKm = (arrivalEnergyKwh / (v.baseline_efficiency_wh_km * styleMult / 1000));
-
-            let riskLevel: RiskLevel = 'SAFE';
-            const recs: string[] = [];
-
-            if (arrivalSocPct < 10) {
-                riskLevel = 'NOT_RECOMMENDED';
-                recs.push('CRITICAL: Route energy deficit detected. Mandatory 18-min stop at Cascade Summit Fast (77.8 km).');
-            } else if (arrivalSocPct < 22) {
-                riskLevel = 'CAUTION';
-                recs.push('Recommended: 12-min top-up at Mt Hood Charge Hub (36.2 km) for buffer in mountain pass.');
-            } else {
-                recs.push('Nominal arrival margin. No en-route charging required under current driving profile.');
-            }
-
-            setSimulation({
-                vehicle_id: vehicleId,
-                usable_battery_capacity_kwh: Math.round(usableCap * 10) / 10,
-                estimated_energy_consumption_kwh: Math.round(routeEnergyKwh * 10) / 10,
-                projected_arrival_soc_pct: Math.round(arrivalSocPct * 10) / 10,
-                remaining_range_km: Math.max(0, Math.round(remainingRangeKm)),
-                risk_level: riskLevel,
-                confidence_score_pct: 93,
-                recommendations: recs,
-            });
-
-            setIsSimulating(false);
-        }, 400);
+        runSimulation({
+            vehicle_id: vehicleId,
+            route_distance_km: TOTAL_DISTANCE,
+            elevation_gain_m: 720,
+            ambient_temp_c: selectedTelemetry?.ambient_temp_c ?? 22,
+            payload_kg: payload,
+            driving_style: drivingStyle,
+            hvac_mode: hvacMode,
+            regen_level: regenLevel,
+        });
     };
 
     return (
         <div className="dashboard">
+            {/* ── Backend status banners ────────────────────────────────── */}
+            {loading && (
+                <div className="api-banner api-banner--loading">
+                    Connecting to fleet backend…
+                </div>
+            )}
+            {!loading && error && (
+                <div className="api-banner api-banner--error">
+                    ⚠ Backend unreachable — showing last known data. ({error})
+                </div>
+            )}
+
             <Header
                 fleetCount={vehicles.length}
                 routeDistance={TOTAL_DISTANCE}
@@ -296,7 +283,7 @@ function App() {
                     cellTemps={thermalGrid}
                     maxTemp={maxTemp}
                     avgTemp={avgTemp}
-                    packHealthPct={selectedVehicle.current_soh}
+                    packHealthPct={activeVehicle.current_soh}
                 />
             </div>
 

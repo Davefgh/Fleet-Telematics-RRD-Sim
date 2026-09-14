@@ -1,5 +1,6 @@
 // src/components/FleetPanel.tsx
 import type { Vehicle } from '@fleet/api-client';
+import { useState } from 'react';
 
 interface FleetPanelProps {
     vehicles: Vehicle[];
@@ -8,22 +9,48 @@ interface FleetPanelProps {
 }
 
 export function FleetPanel({ vehicles, selectedId, onSelect }: FleetPanelProps) {
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const filteredVehicles = vehicles.filter((vehicle) => vehicle.id.toLowerCase().includes(searchQuery.toLowerCase()));
+
     return (
         <aside className="fleet-panel">
             <div className="panel-header">
                 <h2 className="panel-title">FLEET STATUS</h2>
-                <span className="panel-badge">{vehicles.length} ACTIVE</span>
+                <span className="panel-badge">{filteredVehicles.length} / {vehicles.length} ACTIVE</span>
             </div>
-
+            <div className="fleet-search-container">
+                <input
+                    type="text"
+                    placeholder="Search Vehicles"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                    <button
+                        type="button"
+                        className="fleet-search-clear"
+                        onClick={() => setSearchQuery('')}
+                    >
+                        ✕
+                    </button>
+                )}
+            </div>
             <div className="fleet-list">
-                {vehicles.map((vehicle) => (
-                    <VehicleCard
-                        key={vehicle.id}       // React needs a unique "key" for list items
-                        vehicle={vehicle}       // to efficiently update the DOM when data changes.
-                        isSelected={vehicle.id === selectedId}
-                        onClick={() => onSelect(vehicle.id)}
-                    />
-                ))}
+                {filteredVehicles.length > 0 ? (
+                    filteredVehicles.map((vehicle) => (
+                        <VehicleCard
+                            key={vehicle.id}
+                            vehicle={vehicle}
+                            isSelected={vehicle.id === selectedId}
+                            onClick={() => onSelect(vehicle.id)}
+                        />
+                    ))
+                ) : (
+                    <div className="fleet-empty-search">
+                        No vehicle found with ID "{searchQuery}"
+                    </div>
+                )}
             </div>
         </aside>
     );

@@ -58,7 +58,7 @@ export class FleetApiClient {
 
   // Telemetry
   async getLatestTelemetry(vehicleId: string): Promise<TelemetryResponse> {
-    return this.fetchJson<TelemetryResponse>(`/api/telemetry/${encodeURIComponent(vehicleId)}`);
+    return this.fetchJson<TelemetryResponse>(`/api/telemetry/${encodeURIComponent(vehicleId)}/latest`);
   }
 
   async ingestTelemetry(event: TelemetryEvent): Promise<TelemetryResponse> {

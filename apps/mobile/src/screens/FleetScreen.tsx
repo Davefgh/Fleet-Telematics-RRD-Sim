@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,6 +22,7 @@ interface FleetScreenProps {
   onSelectVehicle: (vehicle: Vehicle) => void;
   onRefresh: () => void;
   onSimulateWithVehicle: (vehicle: Vehicle) => void;
+  refreshing?: boolean;
 }
 
 export const FleetScreen: React.FC<FleetScreenProps> = ({
@@ -31,6 +33,7 @@ export const FleetScreen: React.FC<FleetScreenProps> = ({
   onSelectVehicle,
   onRefresh,
   onSimulateWithVehicle,
+  refreshing = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"ALL" | "ACTIVE" | "IDLE">("ALL");
@@ -48,6 +51,15 @@ export const FleetScreen: React.FC<FleetScreenProps> = ({
     <ScrollView
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.accentPrimary}
+          colors={[colors.accentPrimary]}
+          progressBackgroundColor={colors.bgSurface}
+        />
+      }
     >
       <Header
         title="Fleet Management"

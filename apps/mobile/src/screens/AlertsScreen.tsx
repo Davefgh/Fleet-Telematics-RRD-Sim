@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -62,9 +63,15 @@ const initialAlerts: AlertItem[] = [
 
 interface AlertsScreenProps {
   onNavigateTab: (tab: TabType) => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
-export const AlertsScreen: React.FC<AlertsScreenProps> = ({ onNavigateTab }) => {
+export const AlertsScreen: React.FC<AlertsScreenProps> = ({
+  onNavigateTab,
+  refreshing = false,
+  onRefresh,
+}) => {
   const [alerts, setAlerts] = useState<AlertItem[]>(initialAlerts);
   const [filter, setFilter] = useState<"ALL" | "CRITICAL" | "WARNING" | "INFO">("ALL");
 
@@ -112,6 +119,17 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ onNavigateTab }) => 
     <ScrollView
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accentPrimary}
+            colors={[colors.accentPrimary]}
+            progressBackgroundColor={colors.bgSurface}
+          />
+        ) : undefined
+      }
     >
       <Header
         title="Telematics Alerts"

@@ -54,6 +54,7 @@ export default function App() {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(fallbackVehicles[0]);
   const [simResult, setSimResult] = useState<SimulationResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -79,6 +80,12 @@ export default function App() {
       setLoading(false);
     }
   }
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadVehicles();
+    setRefreshing(false);
+  };
 
   async function handleRunSimulation(params: SimulationRequest): Promise<SimulationResponse | null> {
     setLoading(true);
@@ -158,6 +165,8 @@ export default function App() {
               vehicles={vehicles}
               onNavigateTab={setCurrentTab}
               onSelectVehicle={setSelectedVehicle}
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
             />
           )}
 
@@ -168,8 +177,9 @@ export default function App() {
               loading={loading}
               error={error}
               onSelectVehicle={setSelectedVehicle}
-              onRefresh={loadVehicles}
+              onRefresh={handleRefresh}
               onSimulateWithVehicle={handleSimulateWithVehicle}
+              refreshing={refreshing}
             />
           )}
 
@@ -182,15 +192,24 @@ export default function App() {
               simResult={simResult}
               loading={loading}
               error={error}
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
             />
           )}
 
           {currentTab === "alerts" && (
-            <AlertsScreen onNavigateTab={setCurrentTab} />
+            <AlertsScreen
+              onNavigateTab={setCurrentTab}
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+            />
           )}
 
           {currentTab === "more" && (
-            <MoreScreen onRefreshBackend={loadVehicles} />
+            <MoreScreen
+              onRefreshBackend={handleRefresh}
+              refreshing={refreshing}
+            />
           )}
         </View>
 

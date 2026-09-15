@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,6 +30,8 @@ interface SimulatorScreenProps {
   simResult: SimulationResponse | null;
   loading: boolean;
   error: string | null;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
@@ -39,6 +42,8 @@ export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
   simResult,
   loading,
   error,
+  refreshing = false,
+  onRefresh,
 }) => {
   const [distanceKm, setDistanceKm] = useState<number>(120);
   const [elevationGainM, setElevationGainM] = useState<number>(350);
@@ -69,6 +74,17 @@ export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
     <ScrollView
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accentPrimary}
+            colors={[colors.accentPrimary]}
+            progressBackgroundColor={colors.bgSurface}
+          />
+        ) : undefined
+      }
     >
       <Header
         title="Route Simulator"

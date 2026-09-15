@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,12 +17,16 @@ interface DashboardScreenProps {
   vehicles: Vehicle[];
   onNavigateTab: (tab: TabType) => void;
   onSelectVehicle: (vehicle: Vehicle) => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   vehicles,
   onNavigateTab,
   onSelectVehicle,
+  refreshing = false,
+  onRefresh,
 }) => {
   const totalVehicles = vehicles.length || 3;
   const activeVehicles = vehicles.filter((v) => v.status === "ACTIVE").length || 2;
@@ -35,9 +40,20 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     <ScrollView
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accentPrimary}
+            colors={[colors.accentPrimary]}
+            progressBackgroundColor={colors.bgSurface}
+          />
+        ) : undefined
+      }
     >
       <Header
-        title="Fleet Telematics"
+        title="Live Tracking"
         subtitle="Real-Time Operation & Route Decision Support"
       />
 

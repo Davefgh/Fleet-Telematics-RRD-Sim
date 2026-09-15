@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
@@ -14,9 +15,13 @@ import { API_URL, client } from "../config/api";
 
 interface MoreScreenProps {
   onRefreshBackend: () => void;
+  refreshing?: boolean;
 }
 
-export const MoreScreen: React.FC<MoreScreenProps> = ({ onRefreshBackend }) => {
+export const MoreScreen: React.FC<MoreScreenProps> = ({
+  onRefreshBackend,
+  refreshing = false,
+}) => {
   const [pingStatus, setPingStatus] = useState<"idle" | "testing" | "success" | "fail">("idle");
   const [useMetric, setUseMetric] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -37,6 +42,15 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ onRefreshBackend }) => {
     <ScrollView
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleTestPing}
+          tintColor={colors.accentPrimary}
+          colors={[colors.accentPrimary]}
+          progressBackgroundColor={colors.bgSurface}
+        />
+      }
     >
       <Header
         title="Settings & System"

@@ -14,6 +14,8 @@ import {
   SimulatorScreen,
   AlertsScreen,
   MoreScreen,
+  AuthScreen,
+  type AuthUser,
 } from "./src/screens";
 
 const fallbackVehicles: Vehicle[] = [
@@ -56,6 +58,7 @@ const fallbackVehicles: Vehicle[] = [
 ];
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [currentTab, setCurrentTab] = useState<TabType>("simulator");
   const [vehicles, setVehicles] = useState<Vehicle[]>(fallbackVehicles);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(fallbackVehicles[0]);
@@ -203,6 +206,17 @@ export default function App() {
     setCurrentTab("simulator");
   };
 
+  if (!currentUser) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.container} edges={["top", "left", "right", "bottom"]}>
+          <StatusBar style="light" />
+          <AuthScreen onLogin={setCurrentUser} />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -265,6 +279,8 @@ export default function App() {
             <MoreScreen
               onRefreshBackend={handleRefresh}
               refreshing={refreshing}
+              currentUser={currentUser}
+              onLogout={() => setCurrentUser(null)}
             />
           )}
         </View>

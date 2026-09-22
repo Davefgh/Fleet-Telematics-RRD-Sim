@@ -12,15 +12,20 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors } from "../constants/theme";
 import { Header } from "../components";
 import { API_URL, client } from "../config/api";
+import type { AuthUser } from "./AuthScreen";
 
 interface MoreScreenProps {
   onRefreshBackend: () => void;
   refreshing?: boolean;
+  currentUser?: AuthUser | null;
+  onLogout?: () => void;
 }
 
 export const MoreScreen: React.FC<MoreScreenProps> = ({
   onRefreshBackend,
   refreshing = false,
+  currentUser,
+  onLogout,
 }) => {
   const [pingStatus, setPingStatus] = useState<"idle" | "testing" | "success" | "fail">("idle");
   const [useMetric, setUseMetric] = useState(true);
@@ -56,6 +61,55 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
         title="Settings & System"
         subtitle="Telematics Configuration & Diagnostics"
       />
+
+      {/* Account Profile & Session */}
+      {currentUser && (
+        <View style={styles.sectionCard}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Account & Session</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleBadgeText}>{currentUser.role}</Text>
+            </View>
+          </View>
+
+          <View style={styles.profileRow}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarInitials}>
+                {currentUser.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{currentUser.name}</Text>
+              <Text style={styles.profileEmail}>{currentUser.email}</Text>
+              <Text style={styles.profileFleet}>
+                <MaterialCommunityIcons name="domain" size={12} color={colors.textMuted} />{" "}
+                {currentUser.fleetName}
+              </Text>
+            </View>
+          </View>
+
+          {onLogout && (
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={onLogout}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons
+                name="logout-variant"
+                size={18}
+                color={colors.riskDanger}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.logoutButtonText}>Sign Out of Fleet</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Backend Connection Diagnostic */}
       <View style={styles.sectionCard}>
@@ -327,5 +381,75 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  roleBadge: {
+    backgroundColor: colors.badgeBg,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.accentPrimary,
+  },
+  roleBadgeText: {
+    color: colors.accentPrimary,
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  profileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.accentPrimarySubtle,
+    borderWidth: 1.5,
+    borderColor: colors.accentPrimary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  avatarInitials: {
+    color: colors.accentPrimary,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  profileEmail: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 1,
+  },
+  profileFleet: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 3,
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.errorBg,
+    borderWidth: 1,
+    borderColor: colors.riskDanger,
+    borderRadius: 8,
+    paddingVertical: 10,
+    marginTop: 14,
+  },
+  logoutButtonText: {
+    color: colors.errorText,
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

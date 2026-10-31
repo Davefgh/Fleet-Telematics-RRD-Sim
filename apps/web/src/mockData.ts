@@ -36,6 +36,12 @@ export const MOCK_SIMULATION: SimulationResponse = {
     projected_arrival_soc_pct: 48.6,
     remaining_range_km: 218,
     risk_level: 'SAFE',
-    confidence_score_pct: 91,
+    confidence_score_pct: 100,
     recommendations: ['Charge at Cascade Summit Fast (77.8 km) to ensure comfortable arrival margin.'],
+    uncertainty_pct: 5,
+    predicted_range_km: 369,
+    predicted_range_low_km: 351,
+    predicted_range_high_km: 388,
+    arrival_soc_low_pct: 46.3,
+    arrival_soc_high_pct: 49.7,
 };

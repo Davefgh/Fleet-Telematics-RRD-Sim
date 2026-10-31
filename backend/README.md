@@ -132,8 +132,8 @@ capped at 4% of usable capacity. The reference points (1500 cycles, a 50%
 neutral depth of discharge, a 50% fast-charge share) and the weights are
 **heuristic PoC calibration assumptions**, not measured OEM degradation data.
 The overlay changes usable capacity, arrival SOC, and remaining range; it does
-not change route energy demand, risk thresholds, or the fixed confidence
-scores.
+not change route energy demand or risk thresholds. Its stress class widens the
+confidence band described below.
 
 Vehicle responses include the derived `battery_history` assessment, and
 assessments report the `battery_history` they used along with the history
@@ -172,8 +172,21 @@ cannot produce net charging.
 Results include `propulsion_energy_kwh`, `hvac_energy_kwh`, `climb_energy_kwh`, and
 `recovered_regen_energy_kwh` alongside net `estimated_energy_consumption_kwh`.
 Components are independently rounded to two decimals, so their displayed sum may
-differ slightly from the net total. Existing risk thresholds and fixed confidence
-scores remain heuristic. Web and mobile assessment results display the submitted
+differ slightly from the net total.
+
+Each assessment also reports a heuristic confidence band. `uncertainty_pct` starts at
+±5% of net route energy and adds 5 below 0°C, 3 above 35°C, 4 for AGGRESSIVE driving,
+2 for URBAN roads, 2/4 for ELEVATED/HIGH history stress, and 3 for SOH below 80%
+(at most ±23%). `predicted_range_km` is departure energy divided by the route's
+consumption rate (0.05 kWh/km floor); `predicted_range_low_km`/`_high_km` and
+`arrival_soc_low_pct`/`_high_pct` apply the band to that rate and to route energy.
+`confidence_score_pct` is the chance of arriving at or above the reserve, treating
+route energy as normal with the band as its 90% interval, so arriving exactly at the
+reserve scores 50%. When net route energy is zero it is 100 if the reserve is met,
+otherwise 0. Risk thresholds are unchanged, so a SAFE route just above its reserve can
+show modest confidence. These coefficients are **heuristic PoC assumptions**, not
+calibrated against observed trips. The band fields are null on runs saved before they
+existed; those runs keep their original fixed confidence. Web and mobile assessment results display the submitted
 conditions, reserve, energy breakdown, and all recommendations. Results are marked
 outdated when route inputs, the selected vehicle, its reported battery snapshot, or
 any captured vehicle specification changes. Offline mobile results capture their

@@ -62,6 +62,12 @@ export function SimulationResult({ assessment, isOutdated, children }: Simulatio
                 <div><dt>Battery on arrival</dt><dd>{result.projected_arrival_soc_pct < 0 ? 'Empty' : `${Math.floor(result.projected_arrival_soc_pct)}%`}</dd></div>
                 <div><dt>Range left after trip</dt><dd>{result.remaining_range_km.toFixed(0)} km</dd></div>
                 <div><dt>Energy used</dt><dd>{result.estimated_energy_consumption_kwh.toFixed(1)} kWh</dd></div>
+                {result.arrival_soc_low_pct != null && result.arrival_soc_high_pct != null && (
+                    <div><dt>Likely arrival battery</dt><dd>{Math.max(0, Math.floor(result.arrival_soc_low_pct))}–{Math.max(0, Math.floor(result.arrival_soc_high_pct))}%</dd></div>
+                )}
+                {result.predicted_range_low_km != null && result.predicted_range_high_km != null && (
+                    <div><dt>Range at departure</dt><dd>{result.predicted_range_low_km.toFixed(0)}–{result.predicted_range_high_km.toFixed(0)} km</dd></div>
+                )}
             </dl>
 
             <h3>What you can do</h3>
@@ -82,9 +88,21 @@ export function SimulationResult({ assessment, isOutdated, children }: Simulatio
                         <p>{formatBatteryHistory(result.battery_history)}</p>
                         <dl className="assessment-stats">
                             <div><dt>Arrival SOC</dt><dd>{result.projected_arrival_soc_pct.toFixed(1)}%</dd></div>
-                            <div><dt>Heuristic confidence</dt><dd>{result.confidence_score_pct.toFixed(0)}%</dd></div>
+                            {result.uncertainty_pct != null ? (
+                                <>
+                                    <div><dt>Chance of arriving above safety margin</dt><dd>{result.confidence_score_pct.toFixed(0)}%</dd></div>
+                                    <div><dt>Energy estimate uncertainty</dt><dd>±{result.uncertainty_pct.toFixed(0)}%</dd></div>
+                                </>
+                            ) : (
+                                <div><dt>Heuristic confidence</dt><dd>{result.confidence_score_pct.toFixed(0)}%</dd></div>
+                            )}
                         </dl>
-                        <p className="assessment-note">Backend assessment · Heuristic PoC model. Confidence is a fixed rule score, not a calibrated completion probability.</p>
+                        <p className="assessment-note">
+                            Backend assessment · Heuristic PoC model.{' '}
+                            {result.uncertainty_pct != null
+                                ? 'The uncertainty and chance are rule-of-thumb estimates, not calibrated against real trips.'
+                                : 'Confidence is a fixed rule score, not a calibrated completion probability.'}
+                        </p>
                     </div>
                     <div>
                         <h3>Route energy</h3>

@@ -63,6 +63,13 @@ class SimulationResponse(BaseModel):
     risk_level: Literal["SAFE", "CAUTION", "NOT_RECOMMENDED"]
     confidence_score_pct: float
     recommendations: list[str]
+    # Confidence band; null on runs saved before it existed.
+    uncertainty_pct: float | None = None
+    predicted_range_km: float | None = None
+    predicted_range_low_km: float | None = None
+    predicted_range_high_km: float | None = None
+    arrival_soc_low_pct: float | None = None
+    arrival_soc_high_pct: float | None = None
 
 
 class SimulationRecord(BaseModel):

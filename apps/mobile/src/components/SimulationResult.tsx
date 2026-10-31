@@ -66,6 +66,16 @@ export const SimulationResult: React.FC<SimulationResultProps> = ({ assessment, 
       <Text style={styles.detailRow}>
         Remaining Range: {result.remaining_range_km.toFixed(1)} km
       </Text>
+      {result.arrival_soc_low_pct != null && result.arrival_soc_high_pct != null && (
+        <Text style={styles.detailRow}>
+          Likely arrival SOC: {result.arrival_soc_low_pct.toFixed(1)}–{result.arrival_soc_high_pct.toFixed(1)}%
+        </Text>
+      )}
+      {result.predicted_range_low_km != null && result.predicted_range_high_km != null && (
+        <Text style={styles.detailRow}>
+          Range at departure: {result.predicted_range_low_km.toFixed(0)}–{result.predicted_range_high_km.toFixed(0)} km
+        </Text>
+      )}
       <Text accessibilityRole="header" style={styles.sectionTitle}>Route energy</Text>
       {breakdown ? (
         <>
@@ -80,8 +90,19 @@ export const SimulationResult: React.FC<SimulationResultProps> = ({ assessment, 
       ) : <Text style={styles.note}>Energy breakdown unavailable for this estimate.</Text>}
       {origin === "backend" ? (
         <>
-          <Text style={styles.detailRow}>Heuristic confidence: {result.confidence_score_pct.toFixed(0)}%</Text>
-          <Text style={styles.note}>Confidence is a fixed rule score, not a calibrated completion probability.</Text>
+          {result.uncertainty_pct != null ? (
+            <>
+              <Text style={styles.detailRow}>
+                Chance of arriving above safety margin: {result.confidence_score_pct.toFixed(0)}% (energy ±{result.uncertainty_pct.toFixed(0)}%)
+              </Text>
+              <Text style={styles.note}>Uncertainty and chance are rule-of-thumb estimates, not calibrated against real trips.</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.detailRow}>Heuristic confidence: {result.confidence_score_pct.toFixed(0)}%</Text>
+              <Text style={styles.note}>Confidence is a fixed rule score, not a calibrated completion probability.</Text>
+            </>
+          )}
         </>
       ) : (
         <Text style={styles.note}>

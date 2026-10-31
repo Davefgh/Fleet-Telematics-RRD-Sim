@@ -206,4 +206,11 @@ export interface SimulationResponse extends BatteryStateMetadata {
   risk_level: RiskLevel;
   confidence_score_pct: number;
   recommendations: string[];
+  /** Confidence band; null on runs saved before it existed, absent from offline estimates. */
+  uncertainty_pct?: number | null;
+  predicted_range_km?: number | null;
+  predicted_range_low_km?: number | null;
+  predicted_range_high_km?: number | null;
+  arrival_soc_low_pct?: number | null;
+  arrival_soc_high_pct?: number | null;
 }

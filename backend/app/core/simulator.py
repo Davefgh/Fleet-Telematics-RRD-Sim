@@ -1,3 +1,5 @@
+import math
+
 from app.core.battery_history import assess_battery_history
 from app.schemas.simulation import SimulationRequest, SimulationResponse, SimulationVehicleProfile
 from app.schemas.vehicle import Vehicle
@@ -7,6 +9,17 @@ ROAD_MULTIPLIERS = {"URBAN": 1.05, "HIGHWAY": 1.15, "MIXED": 1.0}
 REGEN_MULTIPLIERS = {"OFF": 0.0, "LOW": 0.35, "MEDIUM": 0.65, "HIGH": 1.0}
 CLIMB_EFFICIENCY = 0.80
 PAYLOAD_MASS_COEFFICIENT = 0.125
+
+# Heuristic route-energy uncertainty (percentage points of net route energy).
+BASE_UNCERTAINTY_PCT = 5.0
+COLD_UNCERTAINTY_PCT = 5.0  # below 0 °C
+HEAT_UNCERTAINTY_PCT = 3.0  # above 35 °C
+AGGRESSIVE_UNCERTAINTY_PCT = 4.0
+URBAN_UNCERTAINTY_PCT = 2.0
+HISTORY_UNCERTAINTY_PCT = {"ELEVATED": 2.0, "HIGH": 4.0}
+LOW_SOH_UNCERTAINTY_PCT = 3.0  # SOH below 80%
+# The uncertainty band is treated as a 90% interval of a normal distribution.
+BAND_Z_SCORE = 1.645
 
 
 def calculate_simulation(req: SimulationRequest, vehicle: Vehicle) -> SimulationResponse:
@@ -95,15 +108,42 @@ def calculate_simulation(req: SimulationRequest, vehicle: Vehicle) -> Simulation
         max(0.0, remaining_energy_kwh / max(0.05, average_efficiency_kwh_km)), 1
     )
 
-    # 4. Risk Classification & Decision Support
+    # 4. Confidence Band
+    uncertainty_pct = BASE_UNCERTAINTY_PCT
+    if req.ambient_temp_c < 0:
+        uncertainty_pct += COLD_UNCERTAINTY_PCT
+    elif req.ambient_temp_c > 35:
+        uncertainty_pct += HEAT_UNCERTAINTY_PCT
+    if req.driving_style == "AGGRESSIVE":
+        uncertainty_pct += AGGRESSIVE_UNCERTAINTY_PCT
+    if req.road_type == "URBAN":
+        uncertainty_pct += URBAN_UNCERTAINTY_PCT
+    uncertainty_pct += HISTORY_UNCERTAINTY_PCT.get(history.stress_class or "", 0.0)
+    if vehicle.current_soh < 80:
+        uncertainty_pct += LOW_SOH_UNCERTAINTY_PCT
+    spread = uncertainty_pct / 100.0
+
+    def range_at(rate_kwh_km: float) -> float:
+        return round(max(0.0, current_energy_kwh / max(0.05, rate_kwh_km)), 1)
+
+    def arrival_soc_at(consumption_kwh: float) -> float:
+        return round((current_energy_kwh - consumption_kwh) / effective_usable_kwh * 100.0, 1)
+
+    margin_kwh = remaining_energy_kwh - effective_usable_kwh * req.reserve_soc_target_pct / 100.0
+    sigma_kwh = total_consumption_kwh * spread / BAND_Z_SCORE
+    if sigma_kwh > 0:
+        completion = 0.5 * (1.0 + math.erf(margin_kwh / (sigma_kwh * math.sqrt(2.0))))
+    else:
+        completion = 1.0 if projected_arrival_soc >= req.reserve_soc_target_pct else 0.0
+    confidence_score = round(completion * 100.0, 1)
+
+    # 5. Risk Classification & Decision Support
     recommendations: list[str] = []
     if projected_arrival_soc >= req.reserve_soc_target_pct:
         risk_level = "SAFE"
-        confidence_score = 92.0
         recommendations.append("No changes needed. You can drive this trip as planned.")
     elif projected_arrival_soc >= (req.reserve_soc_target_pct / 2.0):
         risk_level = "CAUTION"
-        confidence_score = 75.0
         recommendations.append("You would arrive with less battery than your chosen safety margin.")
         if req.driving_style == "AGGRESSIVE":
             recommendations.append("Drive in Eco mode to save battery.")
@@ -112,7 +152,6 @@ def calculate_simulation(req: SimulationRequest, vehicle: Vehicle) -> Simulation
         recommendations.append("Consider a 10-15 minute top-up charge before you leave.")
     else:
         risk_level = "NOT_RECOMMENDED"
-        confidence_score = 88.0
         recommendations.append(
             "This trip needs a charge, either before you leave or at a stop on the way."
         )
@@ -146,4 +185,10 @@ def calculate_simulation(req: SimulationRequest, vehicle: Vehicle) -> Simulation
         risk_level=risk_level,
         confidence_score_pct=confidence_score,
         recommendations=recommendations,
+        uncertainty_pct=uncertainty_pct,
+        predicted_range_km=range_at(average_efficiency_kwh_km),
+        predicted_range_low_km=range_at(average_efficiency_kwh_km * (1 + spread)),
+        predicted_range_high_km=range_at(average_efficiency_kwh_km * (1 - spread)),
+        arrival_soc_low_pct=arrival_soc_at(total_consumption_kwh * (1 + spread)),
+        arrival_soc_high_pct=arrival_soc_at(total_consumption_kwh * (1 - spread)),
     )

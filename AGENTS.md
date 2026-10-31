@@ -134,8 +134,12 @@ Vehicle profiles include positive `curb_mass_kg` (default 2500),
   are rounded independently; displayed sums can differ slightly from net energy.
 - Arrival SOC may be negative. Remaining range extrapolates route consumption with
   a 0.05 kWh/km floor. Zero usable battery capacity produces 422 (per-item batch error).
-- Arrival SOC ≥ reserve → SAFE (fixed confidence 92); ≥ reserve / 2 → CAUTION (75);
-  otherwise NOT_RECOMMENDED (88). Recommendations and confidence remain heuristic.
+- Arrival SOC ≥ reserve → SAFE; ≥ reserve / 2 → CAUTION; otherwise NOT_RECOMMENDED.
+- `uncertainty_pct` is ±5% of route energy plus 5 (<0°C) / 3 (>35°C) / 4 (AGGRESSIVE) /
+  2 (URBAN) / 2 or 4 (ELEVATED or HIGH stress) / 3 (SOH <80%). It sets the predicted
+  range and arrival SOC low/high bands. `confidence_score_pct` is the normal-CDF chance
+  of arriving at or above the reserve (band = 90% interval; 50 at exactly the reserve).
+  Band fields are nullable for older saved runs. Recommendations and confidence remain heuristic.
 
 These are PoC calibration assumptions, not measured OEM performance. No segment-order,
 battery headroom, or regen power-limit model is implemented. Calibrated uncertainty

@@ -16,39 +16,14 @@ import { ThermalMap } from './components/ThermalMap';
 import { BatteryHealthChart } from './components/BatteryHealthChart';
 import { RegenBrakingPanel } from './components/RegenBrakingPanel';
 import { ChargingPanel } from './components/ChargingPanel';
+import { ELEVATION_PROFILE, ROUTE_DISTANCE_KM, ROUTE_ELEVATION } from './routeData';
 
-// ── Static route data (Portland → Bend, GT-6 Corridor) ─────────────────
-const TOTAL_DISTANCE = 129.4;
-
-const ELEVATION_DATA = [
-    { distance: 0,     elevation: 15 },
-    { distance: 10,    elevation: 45 },
-    { distance: 20,    elevation: 220 },
-    { distance: 30,    elevation: 850 },
-    { distance: 40,    elevation: 1260 },
-    { distance: 50,    elevation: 1490 }, // Summit (Govt Camp)
-    { distance: 60,    elevation: 1180 }, // Descent
-    { distance: 70,    elevation: 720 },  // Plateau
-    { distance: 80,    elevation: 480 },
-    { distance: 90,    elevation: 320 },
-    { distance: 100,   elevation: 260 },
-    { distance: 110,   elevation: 210 },
-    { distance: 120,   elevation: 190 },
-    { distance: 129.4, elevation: 182 },
-];
-
-const DEMO_ELEVATION = ELEVATION_DATA.reduce((totals, point, index) => {
-    if (index > 0) {
-        const change = point.elevation - ELEVATION_DATA[index - 1].elevation;
-        totals.gain += Math.max(0, change);
-        totals.loss += Math.max(0, -change);
-    }
-    return totals;
-}, { gain: 0, loss: 0 });
+// Climb up to the route's highest point (past Government Camp)
+const SUMMIT_FRACTION = ELEVATION_PROFILE.reduce((top, p) => (p.elevation > top.elevation ? p : top)).distance / ROUTE_DISTANCE_KM;
 
 // Example trips that fill the route fields; only Portland → Bend matches the map.
 const ROUTE_PRESETS: RoutePreset[] = [
-    { label: 'Portland → Bend (mountain pass)', distanceKm: TOTAL_DISTANCE, gainM: DEMO_ELEVATION.gain, lossM: DEMO_ELEVATION.loss, roadType: 'MIXED' },
+    { label: 'Portland → Bend (mountain pass)', distanceKm: ROUTE_DISTANCE_KM, gainM: ROUTE_ELEVATION.gain, lossM: ROUTE_ELEVATION.loss, roadType: 'MIXED' },
     { label: 'City deliveries', distanceKm: 60, gainM: 120, lossM: 120, roadType: 'URBAN' },
     { label: 'Flat highway run', distanceKm: 200, gainM: 150, lossM: 150, roadType: 'HIGHWAY' },
 ];
@@ -69,10 +44,10 @@ function buildDynamicSocData(
     const payloadFactor = 1 + (payloadKg / 1000) * 0.15;
 
     let cumulativeKwhUsed = 0;
-    let prevElevation = ELEVATION_DATA[0].elevation;
+    let prevElevation = ELEVATION_PROFILE[0].elevation;
     let prevDistance = 0;
 
-    return ELEVATION_DATA.map(({ distance, elevation }) => {
+    return ELEVATION_PROFILE.map(({ distance, elevation }) => {
         const segDistanceKm = distance - prevDistance;
         const deltaElevM = elevation - prevElevation;
 
@@ -103,8 +78,8 @@ function buildDynamicSocData(
 
 function buildThermalGrid(baseTempC: number, drivingStyle: DrivingStyle, progressFraction: number): number[][] {
     const loadBonus = drivingStyle === 'AGGRESSIVE' ? 3.5 : drivingStyle === 'ECO' ? -1.0 : 0;
-    // Extra heat near summit climb (progress ~ 0.35 to 0.45)
-    const climbHeat = progressFraction > 0.25 && progressFraction < 0.48 ? 2.8 : 0;
+    // Extra heat on the climb up to the summit
+    const climbHeat = progressFraction > 0 && progressFraction < SUMMIT_FRACTION ? 2.8 : 0;
     const effectiveBase = baseTempC + loadBonus + climbHeat;
 
     return Array.from({ length: 4 }, (_, r) =>
@@ -143,9 +118,9 @@ function App() {
         return !shown;
     });
     const [routeValues, setRouteValues] = useState<SimulationNumericDraft>({
-        route_distance_km: String(TOTAL_DISTANCE),
-        elevation_gain_m: String(DEMO_ELEVATION.gain),
-        elevation_loss_m: String(DEMO_ELEVATION.loss),
+        route_distance_km: String(ROUTE_DISTANCE_KM),
+        elevation_gain_m: String(ROUTE_ELEVATION.gain),
+        elevation_loss_m: String(ROUTE_ELEVATION.loss),
         ambient_temp_c: '22',
         payload_kg: '450',
         reserve_soc_target_pct: '15',
@@ -281,7 +256,7 @@ function App() {
         <div className="dashboard">
             <Header
                 fleetCount={vehicles.length}
-                routeDistance={TOTAL_DISTANCE}
+                routeDistance={ROUTE_DISTANCE_KM}
                 batteryHealth={Math.round(avgSoh * 10) / 10}
             />
 
@@ -356,6 +331,7 @@ function App() {
                     onReset={() => setProgressFraction(0)}
                     progressFraction={progressFraction}
                     onProgressChange={setProgressFraction}
+                    routeDistanceKm={ROUTE_DISTANCE_KM}
                     showAdvanced={showAdvanced}
                     onToggleAdvanced={toggleAdvanced}
                 />
@@ -370,16 +346,19 @@ function App() {
 
                 <MapPanel
                     vehicles={vehicles}
+                    telemetry={telemetry}
+                    dataStatus={dataStatus}
                     selectedVehicleId={selectedVehicleId}
+                    selectedStationId={selectedStationId}
                     progressFraction={progressFraction}
                     onSelectVehicle={setSelectedVehicleId}
                     onSelectStation={setSelectedStationId}
                 />
 
                 <ElevationChart
-                    elevationData={ELEVATION_DATA}
+                    elevationData={ELEVATION_PROFILE}
                     socData={socData}
-                    totalDistance={TOTAL_DISTANCE}
+                    totalDistance={ROUTE_DISTANCE_KM}
                     progressFraction={progressFraction}
                 />
 

@@ -1269,6 +1269,11 @@
     animation-delay: 0.12s;
 }
 
+/* Standard OSM tiles recoloured to match the dark dashboard */
+.map-tiles-dark {
+    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}
+
 .elevation-panel {
     animation: fadeSlideUp 0.35s ease-out backwards;
     animation-delay: 0.16s;

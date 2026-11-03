@@ -13,13 +13,14 @@ export const MOCK_VEHICLES: Vehicle[] = [
 ];
 
 // ── Mock Telemetry ───────────────────────────────────────────────
+// Positions are on-road points from routeData.ts (same as backend/seed_demo_positions.py).
 export const MOCK_TELEMETRY: Record<string, TelemetryEvent> = {
-    'EV-001': { vehicle_id: 'EV-001', timestamp: new Date().toISOString(), soc: 82.4, soh: 96.1, speed_kph: 95.2, odometer_km: 24810, ambient_temp_c: 24.5, pack_temp_c: 31.2, latitude: 45.52, longitude: -121.8 },
-    'EV-002': { vehicle_id: 'EV-002', timestamp: new Date().toISOString(), soc: 61.8, soh: 91.3, speed_kph: 88.0, odometer_km: 38210, ambient_temp_c: 25.0, pack_temp_c: 35.8, latitude: 45.40, longitude: -121.5 },
-    'EV-003': { vehicle_id: 'EV-003', timestamp: new Date().toISOString(), soc: 38.5, soh: 88.7, speed_kph: 72.5, odometer_km: 51400, ambient_temp_c: 23.0, pack_temp_c: 40.4, latitude: 45.28, longitude: -121.2 },
-    'EV-004': { vehicle_id: 'EV-004', timestamp: new Date().toISOString(), soc: 91.2, soh: 97.4, speed_kph: 0,    odometer_km: 12300, ambient_temp_c: 22.0, pack_temp_c: 28.1, latitude: 45.52, longitude: -122.6 },
-    'EV-005': { vehicle_id: 'EV-005', timestamp: new Date().toISOString(), soc: 25.3, soh: 84.2, speed_kph: 0,    odometer_km: 67890, ambient_temp_c: 26.0, pack_temp_c: 44.7, latitude: 44.05, longitude: -121.3 },
-    'EV-006': { vehicle_id: 'EV-006', timestamp: new Date().toISOString(), soc: 74.6, soh: 93.8, speed_kph: 103.4, odometer_km: 19240, ambient_temp_c: 24.0, pack_temp_c: 33.5, latitude: 44.80, longitude: -121.0 },
+    'EV-001': { vehicle_id: 'EV-001', timestamp: new Date().toISOString(), soc: 82.4, soh: 96.1, speed_kph: 95.2, odometer_km: 24810, ambient_temp_c: 24.5, pack_temp_c: 31.2, latitude: 45.39625, longitude: -122.26065 },
+    'EV-002': { vehicle_id: 'EV-002', timestamp: new Date().toISOString(), soc: 61.8, soh: 91.3, speed_kph: 88.0, odometer_km: 38210, ambient_temp_c: 25.0, pack_temp_c: 35.8, latitude: 45.30241, longitude: -121.75859 },
+    'EV-003': { vehicle_id: 'EV-003', timestamp: new Date().toISOString(), soc: 38.5, soh: 88.7, speed_kph: 72.5, odometer_km: 51400, ambient_temp_c: 23.0, pack_temp_c: 40.4, latitude: 44.76472, longitude: -121.26629 },
+    'EV-004': { vehicle_id: 'EV-004', timestamp: new Date().toISOString(), soc: 91.2, soh: 97.4, speed_kph: 0,    odometer_km: 12300, ambient_temp_c: 22.0, pack_temp_c: 28.1, latitude: 45.52311, longitude: -122.6765 },
+    'EV-005': { vehicle_id: 'EV-005', timestamp: new Date().toISOString(), soc: 25.3, soh: 84.2, speed_kph: 0,    odometer_km: 67890, ambient_temp_c: 26.0, pack_temp_c: 44.7, latitude: 44.05819, longitude: -121.31531 },
+    'EV-006': { vehicle_id: 'EV-006', timestamp: new Date().toISOString(), soc: 74.6, soh: 93.8, speed_kph: 103.4, odometer_km: 19240, ambient_temp_c: 24.0, pack_temp_c: 33.5, latitude: 44.27088, longitude: -121.1709 },
 };
 
 // ── Mock Simulation Result ───────────────────────────────────────

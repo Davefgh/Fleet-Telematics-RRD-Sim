@@ -6,6 +6,7 @@ interface ControlsBarProps {
     onReset: () => void;
     progressFraction: number;
     onProgressChange: (progress: number) => void;
+    routeDistanceKm: number;
     showAdvanced: boolean;
     onToggleAdvanced: () => void;
 }
@@ -18,10 +19,11 @@ export function ControlsBar({
     onReset,
     progressFraction,
     onProgressChange,
+    routeDistanceKm,
     showAdvanced,
     onToggleAdvanced,
 }: ControlsBarProps) {
-    const distanceKm = (progressFraction * 129.4).toFixed(1);
+    const distanceKm = (progressFraction * routeDistanceKm).toFixed(1);
 
     return (
         <div className="controls-bar" role="group" aria-labelledby="route-preview-title">

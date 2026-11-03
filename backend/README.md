@@ -205,9 +205,19 @@ it does not dispatch the vehicle or update its operational status. Comparison re
 a backend connection and writes saved runs through the existing batch endpoint.
 
 The web SOC chart and mobile offline estimate still use their own approximations.
-The map and SOC chart are labeled as an illustrative Portland–Bend route, separate
-from the submitted backend assessment. Mobile offline results identify the omitted
-temperature, SOH scaling, road type, descent, regen, and history-stress effects;
+The web map, elevation chart and Portland → Bend example trip share one generated
+dataset (`apps/web/src/routeData.ts`): the real road via Mt Hood, 260.2 km, with
+approximately +2570 m / −1483 m from SRTM 90 m elevation sampled every 2 km. The
+backend uses only those aggregate totals, so the chart's segment order stays
+illustrative and separate from the submitted assessment. With EV-001 and default
+settings, the trip is assessed NOT_RECOMMENDED. Map tiles come from OpenStreetMap (light
+use with attribution under its tile policy); charging stations are labelled samples.
+Vehicles appear at their latest reported position; to place the demo fleet on the
+corridor, run `uv run python seed_demo_positions.py` against a running backend. It
+keeps each vehicle's current SOC/SOH, but battery provenance becomes `telemetry`.
+
+Mobile offline results identify the omitted temperature, SOH scaling, road type,
+descent, regen, and history-stress effects;
 they show no energy breakdown or confidence percentage when those are unavailable.
 
 ## Verification

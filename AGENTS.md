@@ -22,7 +22,9 @@ every listed capability exists in this repository.
   fields, road type, driving/HVAC/regen, submit); `ControlsBar.tsx` drives the route
   preview playback and the advanced-panels toggle (thermal, SOH history, regen; hidden by default).
   `src/hooks/useFleetData.ts` polls vehicles/telemetry and runs simulations through
-  the shared client. `src/mockData.ts` supplies demo data.
+  the shared client. `src/mockData.ts` supplies demo data. `src/routeData.ts` is the
+  generated Portland → Bend dataset (do not edit by hand) that feeds the Leaflet map in
+  `MapPanel.tsx`, the elevation chart, the example trip, and the sample charging stations.
 - `apps/mobile/` — React Native / Expo SDK 57. `App.tsx` handles backend access and an
   offline simulation approximation; `src/screens/` contains dashboard, fleet,
   simulator, alerts, and more screens. Read `apps/mobile/AGENTS.md` before editing.
@@ -60,6 +62,8 @@ Root (pnpm workspace):
 - `pnpm --filter @fleet/mobile android` / `ios` / `web` — targeted Expo startup.
 - `pnpm test:smoke` / `pnpm test:load` — k6 checks (requires k6 and a running backend).
 - `pnpm test:client` — standalone shared-client checks (no backend or browser needed).
+- `node apps/web/scripts/build-route-data.mjs` — regenerate `routeData.ts` from public
+  OSRM and OpenTopoData services (manual, one-off); `--check [file]` validates it offline.
 
 From `backend/`:
 
@@ -69,6 +73,9 @@ From `backend/`:
 - `uv run python -m unittest discover -s tests -v` — backend tests; no pytest needed.
 - `uv run python check_telemetry.py` — telemetry integration check; inspect the script
   for its running-server requirements.
+- `uv run python seed_demo_positions.py [--base-url URL]` — opt-in: posts one telemetry
+  batch placing every registered vehicle on the Portland → Bend corridor. Keeps current
+  SOC/SOH but switches battery provenance to telemetry. Needs a running backend.
 - `uv run ruff check` / `uv run ruff format` — Python lint/format, line length 100,
   double quotes, rules E/W/F/I/B/UP.
 
@@ -147,9 +154,16 @@ is still a design target.
 
 ## UI Boundaries & Gotchas
 
-- Web map playback and its elevation/SOC chart use a fixed illustrative Portland–Bend
-  route. The chart and mobile offline simulation use approximations distinct from the
-  backend. Mobile offline estimates exclude temperature, road type, descent, regen,
+- The web map shows the real Portland → Bend road via Mt Hood (260.2 km, from
+  `routeData.ts`) on OpenStreetMap tiles darkened with CSS; no API key. OSM's tile
+  usage policy allows light use with attribution only. The app makes no routing or
+  elevation calls at runtime, and the route, markers and stations still render without tiles.
+- Vehicles appear at their latest telemetry latitude/longitude; vehicles without one
+  are listed as "No position reported". Playback moves only the route-preview marker
+  and the chart indicator, never vehicles. Charging stations are generic samples with
+  illustrative availability, labelled SAMPLE.
+- The elevation/SOC chart and mobile offline simulation use approximations distinct
+  from the backend. Mobile offline estimates exclude temperature, road type, descent, regen,
   and history stress. Keep demo/cached/local estimates visibly identified.
 - Route assessment inputs must be explicit and editable, and sent through the shared
   `SimulationRequest` contract. Keep negative temperatures valid, distance positive,

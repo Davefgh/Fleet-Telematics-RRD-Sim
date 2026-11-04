@@ -1,4 +1,6 @@
-import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, Tooltip } from 'react-leaflet';
+import { useEffect, useMemo } from 'react';
+import type { LeafletMouseEvent, Map as LeafletMap } from 'leaflet';
+import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import type { TelemetryEvent } from '@fleet/api-client';
 import { CHARGING_STATIONS, ROUTE_DISTANCE_KM, ROUTE_GEOMETRY, ROUTE_WAYPOINTS } from '../routeData';
 
@@ -11,6 +13,7 @@ interface MapPanelProps {
     progressFraction: number; // 0–1 how far along the route
     onSelectVehicle?: (id: string) => void;
     onSelectStation?: (stationId: string) => void;
+    onProgressChange?: (progress: number) => void;
 }
 
 const LABELLED_WAYPOINTS = new Set(['Portland', 'Government Camp', 'Bend']);
@@ -34,6 +37,49 @@ function pointAlongRoute(t: number): [number, number] {
     return [lat1 + (lat2 - lat1) * f, lon1 + (lon2 - lon1) * f];
 }
 
+// Inverse of pointAlongRoute: route fraction of the closest point on any segment.
+function routeFractionAt(lat: number, lon: number): number {
+    let bestDist = Infinity;
+    let bestAlong = 0;
+    for (let i = 1; i < ROUTE_GEOMETRY.length; i++) {
+        const [lat1, lon1] = ROUTE_GEOMETRY[i - 1];
+        const [lat2, lon2] = ROUTE_GEOMETRY[i];
+        const k = Math.cos(((lat1 + lat2) / 2) * (Math.PI / 180));
+        const [sx, sy] = [(lon2 - lon1) * k, lat2 - lat1];
+        const [px, py] = [(lon - lon1) * k, lat - lat1];
+        const len2 = sx * sx + sy * sy;
+        const f = len2 > 0 ? Math.min(1, Math.max(0, (px * sx + py * sy) / len2)) : 0;
+        const dist = Math.hypot(px - f * sx, py - f * sy);
+        if (dist < bestDist) {
+            bestDist = dist;
+            bestAlong = CUMULATIVE[i - 1] + f * (CUMULATIVE[i] - CUMULATIVE[i - 1]);
+        }
+    }
+    return bestAlong / CUMULATIVE[CUMULATIVE.length - 1];
+}
+
+if (import.meta.env.DEV) {
+    for (const t of [0, 0.37, 0.8, 1]) {
+        console.assert(Math.abs(routeFractionAt(...pointAlongRoute(t)) - t) < 1e-6, `routeFractionAt round trip failed at ${t}`);
+    }
+}
+
+// Pans to the selection only when it is off-screen; keyed on the ID so telemetry polls never re-pan.
+function PanToSelection({ id, position }: { id: string | null; position: [number, number] | null }) {
+    const map = useMap();
+    useEffect(() => {
+        if (position) map.panInside(position, { padding: [48, 48] });
+    }, [map, id]); // eslint-disable-line react-hooks/exhaustive-deps
+    return null;
+}
+
+// Module-level so the ref keeps its identity and runs once, not on every render.
+// Leaflet's container is a role-less div, and ARIA prohibits aria-label on generic elements.
+const labelMap = (map: LeafletMap | null) => {
+    map?.getContainer().setAttribute('role', 'region');
+    map?.getContainer().setAttribute('aria-label', 'Route map, Portland to Bend');
+};
+
 const socColor = (soc: number) => soc > 60 ? '#10b981' : soc > 30 ? '#f59e0b' : '#ef4444';
 
 export function MapPanel({
@@ -45,7 +91,14 @@ export function MapPanel({
     progressFraction = 0.5,
     onSelectVehicle,
     onSelectStation,
+    onProgressChange,
 }: MapPanelProps) {
+    // Memoized: react-leaflet rebinds handlers whenever this object's identity changes.
+    const routeClick = useMemo(
+        () => ({ click: (e: LeafletMouseEvent) => onProgressChange?.(routeFractionAt(e.latlng.lat, e.latlng.lng)) }),
+        [onProgressChange],
+    );
+    const selectedStation = CHARGING_STATIONS.find(st => st.id === selectedStationId);
     const positioned = vehicles.flatMap(v => {
         const t = telemetry[v.id];
         return t && Number.isFinite(t.latitude) && Number.isFinite(t.longitude)
@@ -68,7 +121,17 @@ export function MapPanel({
                 boundsOptions={{ padding: [16, 16] }}
                 style={{ flex: 1, minHeight: 240, background: 'var(--bg-panel)' }}
                 attributionControl
+                ref={labelMap}
             >
+                <PanToSelection
+                    id={selectedVehicleId}
+                    position={positioned.find(p => p.vehicle.id === selectedVehicleId)?.position ?? null}
+                />
+                <PanToSelection
+                    id={selectedStationId ?? null}
+                    position={selectedStation ? [selectedStation.lat, selectedStation.lon] : null}
+                />
+
                 <TileLayer
                     url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors; route: OSRM, elevation: SRTM'
@@ -77,11 +140,14 @@ export function MapPanel({
                 />
 
                 <Polyline positions={ROUTE_GEOMETRY} pathOptions={{ color: '#00c2ff', weight: 3, opacity: 0.75 }} />
+                {/* Invisible wide hit target so the thin route is easy to click */}
+                <Polyline positions={ROUTE_GEOMETRY} pathOptions={{ weight: 16, opacity: 0 }} eventHandlers={routeClick} />
 
                 {ROUTE_WAYPOINTS.map(wp => (
                     <CircleMarker
                         key={wp.name}
                         center={[wp.lat, wp.lon]}
+                        eventHandlers={routeClick}
                         radius={LABELLED_WAYPOINTS.has(wp.name) ? 5 : 3}
                         pathOptions={{ color: '#7a8ba6', fillColor: '#0b1320', fillOpacity: 1, weight: 1.5 }}
                     >

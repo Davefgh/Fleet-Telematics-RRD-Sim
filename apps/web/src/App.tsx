@@ -170,7 +170,8 @@ function App() {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.target instanceof HTMLElement &&
-                (e.target.matches('input, select, textarea, button') || e.target.isContentEditable)) return;
+                (e.target.matches('input, select, textarea, button, [role="button"]') || e.target.isContentEditable ||
+                    e.target.closest('.leaflet-container'))) return; // the focused map owns arrows/+/- for panning and zoom
             if (e.code === 'Space') {
                 e.preventDefault();
                 setIsRunning(r => !r);
@@ -353,6 +354,7 @@ function App() {
                     progressFraction={progressFraction}
                     onSelectVehicle={setSelectedVehicleId}
                     onSelectStation={setSelectedStationId}
+                    onProgressChange={setProgressFraction}
                 />
 
                 <ElevationChart

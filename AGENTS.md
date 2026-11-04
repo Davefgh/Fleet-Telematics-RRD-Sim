@@ -162,6 +162,10 @@ is still a design target.
   are listed as "No position reported". Playback moves only the route-preview marker
   and the chart indicator, never vehicles. Charging stations are generic samples with
   illustrative availability, labelled SAMPLE.
+- The map pans to a selected vehicle or station only when it is off-screen (never for
+  playback or telemetry updates). Clicking the route sets the preview to the nearest
+  point on it. Keys pressed while the map has focus belong to Leaflet; the global
+  shortcuts in `App.tsx` ignore them.
 - The elevation/SOC chart and mobile offline simulation use approximations distinct
   from the backend. Mobile offline estimates exclude temperature, road type, descent, regen,
   and history stress. Keep demo/cached/local estimates visibly identified.

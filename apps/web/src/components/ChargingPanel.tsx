@@ -51,6 +51,12 @@ export function ChargingPanel({
                             key={st.id}
                             className={`charging-station-card ${isSelected ? 'charging-station-card--selected' : ''}`}
                             onClick={() => onSelectStation?.(st.id)}
+                            role="button"
+                            tabIndex={0}
+                            aria-current={isSelected || undefined}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectStation?.(st.id); }
+                            }}
                             style={{
                                 cursor: 'pointer',
                                 borderLeft: isSelected ? '3px solid var(--accent-cyan)' : undefined,

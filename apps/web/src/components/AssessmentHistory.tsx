@@ -8,7 +8,7 @@ interface AssessmentHistoryProps {
     loadHistory: (vehicleId: string) => Promise<SimulationRecord[]>;
 }
 
-type HistoryResult = { vehicleId: string; refreshKey: unknown } & (
+type HistoryResult = { vehicleId: string } & (
     | { status: 'error'; message: string }
     | { status: 'ready'; records: SimulationRecord[] });
 
@@ -17,9 +17,8 @@ const fmt = (value: number | undefined, unit: string) => value === undefined ? '
 
 export function AssessmentHistory({ vehicleId, refreshKey, loadHistory }: AssessmentHistoryProps) {
     const [result, setResult] = useState<HistoryResult | null>(null);
-    // A result for another vehicle or an earlier refresh counts as still loading.
-    const state = result && result.vehicleId === vehicleId && result.refreshKey === refreshKey
-        ? result : { status: 'loading' as const };
+    // Keep this vehicle's previous rows visible while it reloads; only a vehicle switch shows loading.
+    const state = result && result.vehicleId === vehicleId ? result : { status: 'loading' as const };
 
     useEffect(() => {
         let cancelled = false;
@@ -30,11 +29,11 @@ export function AssessmentHistory({ vehicleId, refreshKey, loadHistory }: Assess
                 const newest = [...records]
                     .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))
                     .slice(0, MAX_ROWS);
-                setResult({ vehicleId, refreshKey, status: 'ready', records: newest });
+                setResult({ vehicleId, status: 'ready', records: newest });
             },
             err => {
                 if (!cancelled) setResult({
-                    vehicleId, refreshKey, status: 'error',
+                    vehicleId, status: 'error',
                     message: err instanceof Error ? err.message : 'Request failed',
                 });
             },

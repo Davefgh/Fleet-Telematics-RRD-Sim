@@ -17,6 +17,8 @@ export function useFleetData(pollingIntervalMs: number = 5000) {
     const [readingTime, setReadingTime] = useState(Date.now);
     const [lastFetchedAt, setLastFetchedAt] = useState<string | null>(null);
     const [isSimulating, setIsSimulating] = useState(false);
+    // Bumped after each saved run so the history panel reloads once per run.
+    const [historyVersion, setHistoryVersion] = useState(0);
     const fetching = useRef(false);
     const hasBackendData = useRef(false);
 
@@ -53,6 +55,7 @@ export function useFleetData(pollingIntervalMs: number = 5000) {
         try {
             const response = await api.runSimulation(request);
             setAssessment({ request, response, origin: 'backend' });
+            setHistoryVersion(v => v + 1);
         } catch (err) {
             setSimulationError(err instanceof Error ? err.message : 'Simulation failed');
         } finally {
@@ -60,7 +63,11 @@ export function useFleetData(pollingIntervalMs: number = 5000) {
         }
     }, []);
 
-    const runBatchSimulation = useCallback((req: BatchSimulationRequest) => api.runBatchSimulation(req), []);
+    const runBatchSimulation = useCallback(async (req: BatchSimulationRequest) => {
+        const response = await api.runBatchSimulation(req);
+        setHistoryVersion(v => v + 1);
+        return response;
+    }, []);
     const getSimulationHistory = useCallback((vehicleId: string) => api.getSimulationHistory(vehicleId), []);
 
     useEffect(() => {
@@ -74,7 +81,7 @@ export function useFleetData(pollingIntervalMs: number = 5000) {
 
     return {
         vehicles, telemetry, assessment, loading, error, simulationError, dataStatus,
-        readingTime, lastFetchedAt,
+        readingTime, lastFetchedAt, historyVersion,
         isSimulating, refetch: fetchData, runSimulation, runBatchSimulation, getSimulationHistory,
     };
 }

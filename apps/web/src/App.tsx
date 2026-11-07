@@ -96,7 +96,7 @@ function buildThermalGrid(baseTempC: number, drivingStyle: DrivingStyle, progres
 
 // ──────────────────────────────────────────────────────────────────────────
 function App() {
-    const { vehicles, telemetry, assessment, loading, error, simulationError, dataStatus, readingTime, lastFetchedAt, isSimulating, runSimulation, runBatchSimulation, getSimulationHistory } = useFleetData();
+    const { vehicles, telemetry, assessment, loading, error, simulationError, dataStatus, readingTime, lastFetchedAt, isSimulating, runSimulation, runBatchSimulation, getSimulationHistory, historyVersion } = useFleetData();
 
     const [requestedVehicleId, setSelectedVehicleId] = useState<string | null>('EV-001');
     const selectedVehicleId = vehicles.some(vehicle => vehicle.id === requestedVehicleId)
@@ -328,7 +328,7 @@ function App() {
                 {selectedVehicleId && (
                     <AssessmentHistory
                         vehicleId={selectedVehicleId}
-                        refreshKey={assessment}
+                        refreshKey={historyVersion}
                         loadHistory={getSimulationHistory}
                     />
                 )}

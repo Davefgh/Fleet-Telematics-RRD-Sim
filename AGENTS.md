@@ -23,8 +23,8 @@ every listed capability exists in this repository.
   preview playback and the advanced-panels toggle (thermal, SOH history, regen; hidden by default).
   `src/hooks/useFleetData.ts` polls vehicles/telemetry and runs simulations through
   the shared client. `AssessmentHistory.tsx` lists the selected vehicle's 10 newest saved
-  backend assessments (including batch/compare runs); it shows no rows when the backend is
-  unreachable. `src/mockData.ts` supplies demo data. `src/routeData.ts` is the
+  backend assessments (including fleet-comparison batch runs) and reloads after each single
+  or batch run; it shows an "unavailable" alert when the backend is unreachable. `src/mockData.ts` supplies demo data. `src/routeData.ts` is the
   generated Portland → Bend dataset (do not edit by hand) that feeds the Leaflet map in
   `MapPanel.tsx`, the elevation chart, the example trip, and the sample charging stations.
 - `apps/mobile/` — React Native / Expo SDK 57. `App.tsx` handles backend access and an

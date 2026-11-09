@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    dependencies:
+      invariant:
+        specifier: ^2.2.4
+        version: 2.2.4
 
   apps/mobile:
     dependencies:
@@ -25,6 +29,9 @@ importers:
       expo-status-bar:
         specifier: ~58.0.4
         version: 58.0.4(expo@58.0.23)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
+      invariant:
+        specifier: ^2.2.4
+        version: 2.2.4
       react:
         specifier: 19.3.0
         version: 19.3.0

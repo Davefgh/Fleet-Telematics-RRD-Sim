@@ -16,16 +16,38 @@ every listed capability exists in this repository.
 
 ## Repository Layout
 
-- `apps/web/` — React 19 dashboard. `src/App.tsx` composes the controls, fleet/map,
-  elevation/SOC, thermal, battery-health, regen, and charging panels.
+- `apps/web/` — React 19 dashboard. `src/App.tsx` holds shared state and renders a
+  `Sidebar.tsx` plus hash-routed pages (`#/dashboard` default, `#/vehicles`, `#/garage`,
+  `#/planner`, `#/route`, `#/battery`; no router dependency). Vehicles, onboarding and the
+  planner also link to `#/garage`. Dashboard: `FleetSummary.tsx` KPI tiles
+  and status breakdown, map, fleet list, saved assessments. Vehicles: an "Open garage"
+  card (the edit form while editing) and `VehicleActions` (edit, delete with inline
+  confirm) beside the fleet list. New vehicles are registered on the dedicated garage page
+  (`garage/GaragePage.tsx`, rendered in the page area beside the sidebar; `onCreate` only
+  with a live backend; the map and other pages unmount while it is open): its "New vehicle" bay
+  swaps the rail to the known-EV catalog (`src/evModels.ts`, approximate published
+  specs) with 3D previews built after the fleet (`catalogReady`, `preview()`; the
+  two garage bodies in per-model paints, not exact replicas). Picking a model puts it on
+  the lift and supplies model, battery capacity, efficiency and curb mass to the
+  `VehicleForm.tsx` add form (`spec` prop; regen keeps its 0.60 default); the form
+  only asks for ID, name, status, SOC and SOH. The edit form keeps every spec editable.
+  A created car is built with `garage.add()` in its preview's paint and raised on the
+  lift without rebuilding the scene. Edits PATCH only the fields changed since editing began, so
+  untouched SOC/SOH never overwrite newer telemetry or switch its provenance to manual. With an empty live fleet the
+  dashboard keeps its layout: KPI tiles show dashed placeholders, the route map stays,
+  and `FleetOnboarding` (in `FleetSummary.tsx`) lists the first-vehicle steps and navigates
+  to `#/garage`. Planner, route and
+  battery show a generic "add a vehicle" empty state. Planner: route form, result, history.
+  Route: playback controls, map, elevation/SOC, charging. Battery: thermal, SOH history,
+  regen. Playback only animates on the route and battery pages.
   `src/components/RouteInputs.tsx` is the guided setup form (vehicle, numeric route
   fields, road type, driving/HVAC/regen, submit); `ControlsBar.tsx` drives the route
-  preview playback and the advanced-panels toggle (thermal, SOH history, regen; hidden by default).
+  preview playback.
   `src/hooks/useFleetData.ts` polls vehicles/telemetry and runs simulations through
   the shared client. `AssessmentHistory.tsx` lists the selected vehicle's 10 newest saved
   backend assessments (including fleet-comparison batch runs) and reloads after each single
   or batch run; it shows an "unavailable" alert when the backend is unreachable. `src/mockData.ts` supplies demo data. `src/routeData.ts` is the
-  generated Portland → Bend dataset (do not edit by hand) that feeds the Leaflet map in
+  generated Manila → Baguio dataset (do not edit by hand) that feeds the Leaflet map in
   `MapPanel.tsx`, the elevation chart, the example trip, and the sample charging stations.
 - `apps/mobile/` — React Native / Expo SDK 57. `App.tsx` handles backend access and an
   offline simulation approximation; `src/screens/` contains dashboard, fleet,
@@ -41,7 +63,7 @@ every listed capability exists in this repository.
     simulation single/batch/comparison and saved-run history.
   - `app/core/fleet_state.py` — shared, locked, process-local vehicle and telemetry
     stores; battery state ordering and provenance.
-  - `app/core/persistence.py` — SQLite storage for vehicles, vehicle/telemetry history,
+  - `app/core/persistence.py` — SQLite or Turso storage for vehicles, vehicle/telemetry history,
     and saved simulations; writes commit before changing the process-local caches.
   - `app/core/simulator.py` — `calculate_simulation(req, vehicle)` and route-energy
     calibration coefficients.
@@ -77,7 +99,7 @@ From `backend/`:
 - `uv run python check_telemetry.py` — telemetry integration check; inspect the script
   for its running-server requirements.
 - `uv run python seed_demo_positions.py [--base-url URL]` — opt-in: posts one telemetry
-  batch placing every registered vehicle on the Portland → Bend corridor. Keeps current
+  batch placing every registered vehicle on the Manila → Baguio corridor. Keeps current
   SOC/SOH but switches battery provenance to telemetry. Needs a running backend.
 - `uv run ruff check` / `uv run ruff format` — Python lint/format, line length 100,
   double quotes, rules E/W/F/I/B/UP.
@@ -111,8 +133,11 @@ single/batch/comparison simulation → `calculate_simulation()` → response and
 - Deleting a vehicle clears its vehicle/telemetry state and history. Saved simulation
   records retain their original values even if the ID is recreated.
 - Stores persist in SQLite (`backend/data/fleet.sqlite3`, configurable with
-  `DATABASE_PATH`) and load into memory at application startup. Demo vehicles seed
-  only a new database. Run one backend process with lifespan enabled so requests
+  `DATABASE_PATH`), or in Turso when `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` are
+  set (via `libsql`; its cursors are not iterable, so call `.fetchall()`), and load
+  into memory at application startup. A new database starts with no vehicles; they are
+  registered through `POST /api/vehicles`. The `MOCK_FLEET` demo vehicles only exist
+  in-process when no database is open (tests, `check_telemetry.py`). Run one backend process with lifespan enabled so requests
   share the caches. Tests without lifespan use isolated in-memory state; persistence
   tests use temporary databases. No auth or schema upgrade migrations are implemented.
 
@@ -157,8 +182,9 @@ is still a design target.
 
 ## UI Boundaries & Gotchas
 
-- The web map shows the real Portland → Bend road via Mt Hood (260.2 km, from
-  `routeData.ts`) on OpenStreetMap tiles darkened with CSS; no API key. OSM's tile
+- The web map shows the real Manila → Baguio road via Marcos Highway (282.8 km, from
+  `routeData.ts`; Agoo and Tubao are forced as vias so OSRM avoids the Rosario–Pugo
+  shortcut and Kennon Road) on OpenStreetMap tiles darkened with CSS; no API key. OSM's tile
   usage policy allows light use with attribution only. The app makes no routing or
   elevation calls at runtime, and the route, markers and stations still render without tiles.
 - Vehicles appear at their latest telemetry latitude/longitude; vehicles without one
@@ -178,7 +204,9 @@ is still a design target.
   numeric inputs before submission.
 - Reuse shared driving/HVAC/regen/road enums; HVAC and regen both support
   OFF / LOW / MEDIUM / HIGH.
-- Backend demo IDs run from `EV-001` through `EV-006`; mobile offline demo IDs differ.
+- Vehicle IDs are user-defined; k6 scripts read the registered fleet in `setup()` and
+  need at least one vehicle. In-process demo IDs run `EV-001`–`EV-006`; mobile offline
+  demo IDs differ.
   404 messages quote the unknown ID.
 - Model new timestamps on `datetime.now(UTC)`. `.zed/settings.json` uses ruff and
   pyright, with formatting/import sorting enabled on save.

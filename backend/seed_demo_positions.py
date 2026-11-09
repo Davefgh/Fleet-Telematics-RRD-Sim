@@ -1,4 +1,4 @@
-"""Post demo telemetry with positions along the Portland -> Bend corridor.
+"""Post demo telemetry with positions along the Manila -> Baguio (Marcos Highway) corridor.
 
 Run with a backend already running: cd backend && uv run python seed_demo_positions.py
 [--base-url http://127.0.0.1:8000]
@@ -16,14 +16,17 @@ from datetime import UTC, datetime
 
 # On-road points from apps/web/src/routeData.ts: (name, lat, lon, speed_kph)
 CORRIDOR = [
-    ("Portland", 45.52311, -122.6765, 0.0),
-    ("Sandy", 45.39625, -122.26065, 72.0),
-    ("Government Camp", 45.30241, -121.75859, 64.0),
-    ("Warm Springs", 44.76472, -121.26629, 88.0),
-    ("Madras", 44.63351, -121.12911, 56.0),
-    ("Redmond", 44.27088, -121.1709, 90.0),
-    ("Bend", 44.05819, -121.31531, 0.0),
+    ("Manila", 14.58229, 120.97956, 0.0),
+    ("San Fernando", 15.04017, 120.70446, 92.0),
+    ("Urdaneta", 15.98239, 120.59084, 88.0),
+    ("Rosario", 16.21092, 120.4845, 64.0),
+    ("Pugo", 16.31842, 120.46794, 45.0),
+    ("Tuba", 16.39035, 120.56322, 38.0),
+    ("Baguio", 16.40838, 120.59563, 0.0),
 ]
+# Typical lowland daytime conditions in Luzon (Baguio itself runs cooler).
+AMBIENT_TEMP_C = 31.0
+PACK_TEMP_C = 34.0
 
 
 def request_json(url: str, payload: dict | None = None):
@@ -59,8 +62,8 @@ def main() -> int:
                 "soh": vehicle["current_soh"],
                 "speed_kph": speed,
                 "odometer_km": 12000.0 + 4500.0 * index,
-                "ambient_temp_c": 18.0,
-                "pack_temp_c": 28.0,
+                "ambient_temp_c": AMBIENT_TEMP_C,
+                "pack_temp_c": PACK_TEMP_C,
                 "latitude": lat,
                 "longitude": lon,
             }

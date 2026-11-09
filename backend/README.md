@@ -49,9 +49,15 @@ in the environment or backend `.env` to use another file; relative paths resolve
 from the server's working directory. SQLite uses Python's standard library.
 The data directory is created on startup and excluded from version control.
 
-The first startup seeds the six demo vehicles. Subsequent startups restore the
-saved fleet, including an intentionally empty fleet; deleted vehicles are not
-reseeded. Saved simulations remain independent of vehicle deletion/recreation.
+To use a hosted Turso (libSQL) database instead, set `TURSO_DATABASE_URL` (for example
+`libsql://<db>.turso.io`) and `TURSO_AUTH_TOKEN` in the backend `.env`; `DATABASE_PATH`
+is then ignored. The schema and behaviour are the same, but each write is a network
+round trip. Existing local data is not copied over.
+
+A new database starts with no vehicles; register them with `POST /api/vehicles` (or the
+web app's Vehicles page). Vehicle history starts at a vehicle's registration and records
+each later state change. Subsequent startups restore the saved fleet, including an
+empty one. Saved simulations remain independent of vehicle deletion/recreation.
 The API contracts and battery timestamp ordering rules are unchanged.
 
 Writes commit before the shared in-memory cache changes. Each vehicle change or
@@ -205,9 +211,9 @@ it does not dispatch the vehicle or update its operational status. Comparison re
 a backend connection and writes saved runs through the existing batch endpoint.
 
 The web SOC chart and mobile offline estimate still use their own approximations.
-The web map, elevation chart and Portland → Bend example trip share one generated
-dataset (`apps/web/src/routeData.ts`): the real road via Mt Hood, 260.2 km, with
-approximately +2570 m / −1483 m from SRTM 90 m elevation sampled every 2 km. The
+The web map, elevation chart and Manila → Baguio example trip share one generated
+dataset (`apps/web/src/routeData.ts`): the real road via Marcos Highway (Agoo → Pugo → Tuba),
+282.8 km, with approximately +1913 m / −475 m from SRTM 90 m elevation sampled every 2 km. The
 backend uses only those aggregate totals, so the chart's segment order stays
 illustrative and separate from the submitted assessment. With EV-001 and default
 settings, the trip is assessed NOT_RECOMMENDED. Map tiles come from OpenStreetMap (light

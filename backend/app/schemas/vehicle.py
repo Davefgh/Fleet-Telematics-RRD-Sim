@@ -9,11 +9,11 @@ BatteryStateSource = Literal["telemetry", "vehicle_defaults", "manual"]
 class VehicleBase(BaseModel):
     model_config = ConfigDict(allow_inf_nan=False)
 
-    id: str = Field(..., description="Unique vehicle identifier")
-    name: str = Field(..., description="Display name / Fleet ID")
-    model: str = Field(..., description="Vehicle make and model")
-    battery_capacity_kwh: float = Field(..., description="Nominal battery capacity in kWh")
-    baseline_efficiency_wh_km: float = Field(..., description="Baseline efficiency in Wh/km")
+    id: str = Field(..., min_length=1, description="Unique vehicle identifier")
+    name: str = Field(..., min_length=1, description="Display name / Fleet ID")
+    model: str = Field(..., min_length=1, description="Vehicle make and model")
+    battery_capacity_kwh: float = Field(..., gt=0, description="Nominal battery capacity in kWh")
+    baseline_efficiency_wh_km: float = Field(..., gt=0, description="Baseline efficiency in Wh/km")
     curb_mass_kg: float = Field(
         default=2500.0, gt=0, allow_inf_nan=False, description="Unloaded vehicle mass in kg"
     )

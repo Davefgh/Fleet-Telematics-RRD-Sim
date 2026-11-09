@@ -7,8 +7,6 @@ interface ControlsBarProps {
     progressFraction: number;
     onProgressChange: (progress: number) => void;
     routeDistanceKm: number;
-    showAdvanced: boolean;
-    onToggleAdvanced: () => void;
 }
 
 export function ControlsBar({
@@ -20,8 +18,6 @@ export function ControlsBar({
     progressFraction,
     onProgressChange,
     routeDistanceKm,
-    showAdvanced,
-    onToggleAdvanced,
 }: ControlsBarProps) {
     const distanceKm = (progressFraction * routeDistanceKm).toFixed(1);
 
@@ -29,7 +25,7 @@ export function ControlsBar({
         <div className="controls-bar" role="group" aria-labelledby="route-preview-title">
             <div className="preview-title">
                 <h2 id="route-preview-title">Example route animation</h2>
-                <span>For illustration only. Your trip result is shown above.</span>
+                <span>For illustration only. Run a real check in Trip planner.</span>
             </div>
 
             {/* Playback Controls */}
@@ -44,29 +40,25 @@ export function ControlsBar({
                 <button
                     className="ctrl-btn ctrl-btn--icon"
                     onClick={onReset}
-                    title="Restart the preview from Portland"
+                    title="Restart the preview from Manila"
                 >
                     ↺ Restart
                 </button>
-                {showAdvanced && <>
-                    <div className="controls-divider" />
-                    <span className="ctrl-label" id="preview-speed">Speed</span>
-                    {[1, 2, 4, 8].map(s => (
-                        <button
-                            key={s}
-                            aria-pressed={speed === s}
-                            aria-describedby="preview-speed"
-                            className={`ctrl-btn ctrl-btn--speed ${speed === s ? 'ctrl-btn--active' : ''}`}
-                            onClick={() => onSpeedChange(s)}
-                        >
-                            {s}×
-                        </button>
-                    ))}
-                </>}
+                <div className="controls-divider" />
+                <span className="ctrl-label" id="preview-speed">Speed</span>
+                {[1, 2, 4, 8].map(s => (
+                    <button
+                        key={s}
+                        aria-pressed={speed === s}
+                        aria-describedby="preview-speed"
+                        className={`ctrl-btn ctrl-btn--speed ${speed === s ? 'ctrl-btn--active' : ''}`}
+                        onClick={() => onSpeedChange(s)}
+                    >
+                        {s}×
+                    </button>
+                ))}
             </div>
 
-            {/* Speed and scrubber are demo-only detail, shown with the advanced panels. */}
-            {showAdvanced && <>
             <div className="controls-divider" />
 
             {/* Route Scrubber */}
@@ -81,22 +73,12 @@ export function ControlsBar({
                     onChange={e => onProgressChange(Number(e.target.value) / 100)}
                     className="ctrl-slider"
                     style={{ width: '100px' }}
-                    aria-valuetext={`${distanceKm} km from Portland`}
+                    aria-valuetext={`${distanceKm} km from Manila`}
                 />
                 <span className="ctrl-value" style={{ width: '52px', fontFamily: 'var(--font-mono)' }}>
                     {distanceKm} km
                 </span>
             </label>
-            </>}
-
-            <button
-                className={`ctrl-btn advanced-toggle ${showAdvanced ? 'ctrl-btn--active' : ''}`}
-                aria-pressed={showAdvanced}
-                onClick={onToggleAdvanced}
-                title="Battery temperature, health history and regen panels"
-            >
-                {showAdvanced ? 'Hide advanced panels' : 'Show advanced panels'}
-            </button>
         </div>
     );
 }

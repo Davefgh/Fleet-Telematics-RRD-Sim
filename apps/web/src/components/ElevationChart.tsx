@@ -130,7 +130,7 @@ export function ElevationChart({
         }
         ctx.stroke();
 
-        // 3. Peak summit label (Government Camp ~1490m)
+        // 3. Peak summit label (Baguio, ~1450 m in the SRTM samples)
         const peakPoint = elevationData.reduce((prev, curr) => curr.elevation > prev.elevation ? curr : prev, elevationData[0]);
         const peakX = xScale(peakPoint.distance);
         const peakY = yScaleElev(peakPoint.elevation);
@@ -287,7 +287,7 @@ export function ElevationChart({
                 </div>
             </div>
 
-            <p className="assessment-note">Rough estimate for the Portland → Bend demo route. Your trip result is shown above.</p>
+            <p className="assessment-note">Rough estimate for the Manila → Baguio demo route. Run your own trip in Trip planner.</p>
 
             <canvas
                 ref={canvasRef}

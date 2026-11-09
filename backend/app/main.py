@@ -17,10 +17,16 @@ from app.schemas.simulation import SimulationRecord
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    with persistence.open_database(settings.DATABASE_PATH, fleet_state.DEMO_FLEET) as db:
+    with persistence.open_database(
+        settings.DATABASE_PATH,
+        settings.TURSO_DATABASE_URL,
+        settings.TURSO_AUTH_TOKEN,
+    ) as db:
         records = [
             SimulationRecord.model_validate_json(payload)
-            for (payload,) in db.execute("SELECT payload FROM simulations ORDER BY rowid")
+            for (payload,) in db.execute(
+                "SELECT payload FROM simulations ORDER BY rowid"
+            ).fetchall()
         ]
         with fleet_state.LOCK:
             fleet_state.restore()

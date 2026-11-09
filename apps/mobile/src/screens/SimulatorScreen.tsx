@@ -58,7 +58,7 @@ export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
     route_distance_km: "120",
     elevation_gain_m: "350",
     elevation_loss_m: "0",
-    ambient_temp_c: "18",
+    ambient_temp_c: "31",
     payload_kg: "250",
     reserve_soc_target_pct: "15",
   });

@@ -49,7 +49,7 @@ export function FleetPanel({ vehicles, selectedId, onSelect }: FleetPanelProps) 
                     ))
                 ) : (
                     <div className="fleet-empty-search">
-                        No vehicle found with ID "{searchQuery}"
+                        {vehicles.length === 0 ? 'No vehicles registered yet.' : `No vehicle found with ID "${searchQuery}"`}
                     </div>
                 )}
             </div>
@@ -110,7 +110,7 @@ function VehicleCard({
     );
 }
 
-function getStatusColor(status: string): string {
+export function getStatusColor(status: string): string {
     switch (status) {
         case 'AVAILABLE': return 'var(--accent-green)';
         case 'CHARGING': return 'var(--accent-cyan)';

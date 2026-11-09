@@ -24,6 +24,10 @@ class PersistenceTests(unittest.TestCase):
         self.path_patch = patch.object(settings, "DATABASE_PATH", self.path)
         self.path_patch.start()
         self.addCleanup(self.path_patch.stop)
+        # Never reach a Turso database configured in the developer's .env.
+        self.turso_patch = patch.object(settings, "TURSO_DATABASE_URL", "")
+        self.turso_patch.start()
+        self.addCleanup(self.turso_patch.stop)
         self.stores = (
             fleet_state.MOCK_FLEET,
             fleet_state.VEHICLE_HISTORY,
@@ -265,11 +269,43 @@ class PersistenceTests(unittest.TestCase):
             self.assertEqual(client.get("/api/telemetry/PERSIST-1/history").json(), [])
             self.assertEqual(client.get(f"/api/simulation/{original['id']}").json(), original)
 
-    def test_empty_fleet_is_not_reseeded(self):
+    def test_emptied_fleet_stays_empty_after_restart(self):
         with TestClient(app) as client:
-            for vehicle in client.get("/api/vehicles/").json():
-                self.assertEqual(client.delete(f"/api/vehicles/{vehicle['id']}").status_code, 204)
+            self.assertEqual(client.post("/api/vehicles/", json=self.vehicle).status_code, 201)
+            self.assertEqual(client.delete("/api/vehicles/PERSIST-1").status_code, 204)
         with TestClient(app) as client:
+            self.assertEqual(client.get("/api/vehicles/").json(), [])
+
+    def test_new_database_starts_with_empty_fleet(self):
+        with TestClient(app) as client:
+            self.assertEqual(client.get("/api/vehicles/").json(), [])
+        with sqlite3.connect(self.path) as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM vehicles").fetchone()[0], 0)
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM vehicle_history").fetchone()[0], 0)
+
+    def test_existing_schema_without_version_stamp_is_reused(self):
+        # Turso cannot store user_version, so an existing schema at version 0 must be kept.
+        with TestClient(app) as client:
+            self.assertEqual(client.post("/api/vehicles/", json=self.vehicle).status_code, 201)
+        with sqlite3.connect(self.path) as db:
+            db.execute("PRAGMA user_version = 0")
+        with TestClient(app) as client:
+            ids = [vehicle["id"] for vehicle in client.get("/api/vehicles/").json()]
+            self.assertEqual(ids, ["PERSIST-1"])
+
+    def test_vehicle_registration_rejects_blank_and_nonpositive_fields(self):
+        invalid = (
+            {"id": ""},
+            {"name": ""},
+            {"model": ""},
+            {"battery_capacity_kwh": 0},
+            {"baseline_efficiency_wh_km": -5},
+        )
+        with TestClient(app) as client:
+            for change in invalid:
+                with self.subTest(change=change):
+                    response = client.post("/api/vehicles/", json={**self.vehicle, **change})
+                    self.assertEqual(response.status_code, 422)
             self.assertEqual(client.get("/api/vehicles/").json(), [])
 
     def test_failed_writes_leave_no_memory_or_persisted_changes(self):
@@ -320,8 +356,8 @@ class PersistenceTests(unittest.TestCase):
             self.assertEqual(client.get("/api/telemetry/PERSIST-1/history").json(), [])
 
     def test_unknown_database_version_fails_startup_without_overwriting(self):
-        with TestClient(app):
-            pass
+        with TestClient(app) as client:
+            client.post("/api/vehicles/", json=self.vehicle)
         with sqlite3.connect(self.path) as db:
             db.execute("PRAGMA user_version = 999")
         with self.assertRaisesRegex(RuntimeError, "Unsupported fleet database version"):
@@ -329,7 +365,7 @@ class PersistenceTests(unittest.TestCase):
                 pass
         with sqlite3.connect(self.path) as db:
             self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 999)
-            self.assertEqual(db.execute("SELECT COUNT(*) FROM vehicles").fetchone()[0], 6)
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM vehicles").fetchone()[0], 1)
 
 
 if __name__ == "__main__":

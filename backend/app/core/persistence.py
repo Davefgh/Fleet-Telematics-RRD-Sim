@@ -4,23 +4,40 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
+import libsql
+
 from app.schemas.simulation import SimulationRecord
 from app.schemas.telemetry import TelemetryEvent
 from app.schemas.vehicle import Vehicle, VehicleHistoryEntry
 
-connection: sqlite3.Connection | None = None
+connection: sqlite3.Connection | libsql.Connection | None = None
 
 
 @contextmanager
-def open_database(path: str, seed: list[Vehicle]):
+def open_database(path: str, turso_url: str = "", turso_token: str = ""):
+    """Open the SQLite file at `path`, or the remote Turso database when `turso_url` is set.
+
+    A new database starts with an empty fleet; vehicles are registered through the API.
+    """
     global connection
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(path, check_same_thread=False)
+    if turso_url:
+        db = libsql.connect(turso_url, auth_token=turso_token)
+    else:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        db = sqlite3.connect(path, check_same_thread=False)
     try:
         db.execute("PRAGMA foreign_keys = ON")
         version = db.execute("PRAGMA user_version").fetchone()[0]
         if version not in (0, 1):
             raise RuntimeError(f"Unsupported fleet database version: {version}")
+        # Turso rejects writing user_version, so an existing schema there counts as version 1.
+        if (
+            version == 0
+            and db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'vehicles'"
+            ).fetchone()
+        ):
+            version = 1
         if version == 0:
             with db:
                 db.execute("BEGIN")
@@ -36,21 +53,8 @@ def open_database(path: str, seed: list[Vehicle]):
                     "payload TEXT NOT NULL)"
                 )
                 db.execute("CREATE TABLE simulations (id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
-                for vehicle in seed:
-                    db.execute(
-                        "INSERT INTO vehicles VALUES (?, ?)",
-                        (vehicle.id, vehicle.model_dump_json()),
-                    )
-                    entry = VehicleHistoryEntry(
-                        current_soc=vehicle.current_soc,
-                        current_soh=vehicle.current_soh,
-                        status=vehicle.status,
-                    )
-                    db.execute(
-                        "INSERT INTO vehicle_history (vehicle_id, payload) VALUES (?, ?)",
-                        (vehicle.id, entry.model_dump_json()),
-                    )
-                db.execute("PRAGMA user_version = 1")
+                if not turso_url:
+                    db.execute("PRAGMA user_version = 1")
         connection = db
         yield db
     finally:

@@ -137,6 +137,14 @@ export function RouteInputs({
                         </select>
                         <span className="route-field-hint">Also selectable from the fleet list</span>
                     </label>
+                    <button
+                        type="button"
+                        className="garage-open-btn"
+                        disabled={vehicles.length === 0}
+                        onClick={() => { window.location.hash = '#/garage'; }}
+                    >
+                        Browse vehicles in 3D garage
+                    </button>
                     <ChoiceGroup
                         legend="Start from an example trip"
                         hint="Fills distance, hills and road type. You can still edit them."

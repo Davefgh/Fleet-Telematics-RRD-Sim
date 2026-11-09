@@ -6,14 +6,14 @@ import { check, sleep } from 'k6';
 
 export const BASE_URL = __ENV.BASE_URL || 'http://127.0.0.1:8000';
 
-export const VEHICLES = [
-  'EV-001',
-  'EV-002',
-  'EV-003',
-  'EV-004',
-  'EV-005',
-  'EV-006',
-];
+// The fleet starts empty, so tests run against whichever vehicles are registered.
+export function setup() {
+  const vehicleIds = http.get(`${BASE_URL}/api/vehicles/`).json().map((v) => v.id);
+  if (vehicleIds.length === 0) {
+    throw new Error('No vehicles registered; add at least one before running k6.');
+  }
+  return { vehicleIds };
+}
 
 const HVAC_MODES = ['OFF', 'LOW', 'MEDIUM', 'HIGH'];
 const DRIVING_STYLES = ['ECO', 'NORMAL', 'AGGRESSIVE'];
@@ -43,8 +43,8 @@ export function listVehicles() {
   return res;
 }
 
-export function latestTelemetry() {
-  const vehicleId = pick(VEHICLES);
+export function latestTelemetry(vehicleIds) {
+  const vehicleId = pick(vehicleIds);
   const res = http.get(`${BASE_URL}/api/telemetry/${vehicleId}/latest`);
   check(res, {
     'telemetry latest returns 200': (r) => r.status === 200,
@@ -52,9 +52,9 @@ export function latestTelemetry() {
   return res;
 }
 
-export function runSimulation() {
+export function runSimulation(vehicleIds) {
   const payload = JSON.stringify({
-    vehicle_id: pick(VEHICLES),
+    vehicle_id: pick(vehicleIds),
     route_distance_km: 40 + Math.floor(Math.random() * 221), // 40-260 km
     elevation_gain_m: Math.floor(Math.random() * 900),
     ambient_temp_c: -10 + Math.round(Math.random() * 500) / 10, // -10..40 °C
@@ -79,12 +79,12 @@ export function runSimulation() {
 }
 
 // Default scenario mix: bias towards the core simulation workload.
-export default function () {
+export default function ({ vehicleIds }) {
   const roll = Math.random();
   if (roll < 0.6) {
-    runSimulation();
+    runSimulation(vehicleIds);
   } else if (roll < 0.8) {
-    latestTelemetry();
+    latestTelemetry(vehicleIds);
   } else if (roll < 0.95) {
     listVehicles();
   } else {

@@ -6,6 +6,7 @@
 //   k6 run --out json=results.json k6/load-test.js
 //   k6 run -e BASE_URL=http://localhost:8000 k6/load-test.js
 import scenario from './scenarios.js';
+export { setup } from './scenarios.js';
 
 export const options = {
   // ---- Config ----
@@ -21,6 +22,6 @@ export const options = {
   },
 };
 
-export default function () {
-  scenario();
+export default function (data) {
+  scenario(data);
 }

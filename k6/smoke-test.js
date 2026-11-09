@@ -4,6 +4,7 @@
 // Usage:
 //   k6 run --out json=results-smoke.json k6/smoke-test.js
 import scenario from './scenarios.js';
+export { setup } from './scenarios.js';
 
 export const options = {
   vus: 1,
@@ -15,6 +16,6 @@ export const options = {
   },
 };
 
-export default function () {
-  scenario();
+export default function (data) {
+  scenario(data);
 }

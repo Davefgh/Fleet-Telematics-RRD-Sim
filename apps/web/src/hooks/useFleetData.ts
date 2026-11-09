@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createFleetClient } from '@fleet/api-client';
-import type { BatchSimulationRequest, Vehicle, TelemetryEvent, SimulationAssessment, SimulationRequest } from '@fleet/api-client';
+import type { BatchSimulationRequest, Vehicle, VehicleCreate, VehicleUpdate, TelemetryEvent, SimulationAssessment, SimulationRequest } from '@fleet/api-client';
 import { MOCK_VEHICLES, MOCK_TELEMETRY } from '../mockData';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -21,14 +21,18 @@ export function useFleetData(pollingIntervalMs: number = 5000) {
     const [historyVersion, setHistoryVersion] = useState(0);
     const fetching = useRef(false);
     const hasBackendData = useRef(false);
+    // Bumped by each vehicle add/edit/delete; a poll that started earlier would undo it on screen.
+    const fleetVersion = useRef(0);
 
     const fetchData = useCallback(async () => {
         if (fetching.current) return;
         fetching.current = true;
+        const startVersion = fleetVersion.current;
         try {
             const [vehicleList, fleetTelemetry] = await Promise.all([
                 api.getVehicles(), api.getFleetLatestTelemetry(),
             ]);
+            if (startVersion !== fleetVersion.current) return;
             const vehicleIds = new Set(vehicleList.map(vehicle => vehicle.id));
             setVehicles(vehicleList);
             setTelemetry(Object.fromEntries(
@@ -70,6 +74,31 @@ export function useFleetData(pollingIntervalMs: number = 5000) {
     }, []);
     const getSimulationHistory = useCallback((vehicleId: string) => api.getSimulationHistory(vehicleId), []);
 
+    // Errors (e.g. 409 duplicate ID) propagate so the form can show them next to the fields.
+    const createVehicle = useCallback(async (payload: VehicleCreate) => {
+        const vehicle = await api.createVehicle(payload);
+        fleetVersion.current++;
+        setVehicles(current => [...current, vehicle]);
+        void fetchData();
+        return vehicle;
+    }, [fetchData]);
+
+    const updateVehicle = useCallback(async (vehicleId: string, payload: VehicleUpdate) => {
+        const vehicle = await api.updateVehicle(vehicleId, payload);
+        fleetVersion.current++;
+        setVehicles(current => current.map(v => (v.id === vehicleId ? vehicle : v)));
+        void fetchData();
+        return vehicle;
+    }, [fetchData]);
+
+    const deleteVehicle = useCallback(async (vehicleId: string) => {
+        await api.deleteVehicle(vehicleId);
+        fleetVersion.current++;
+        setVehicles(current => current.filter(v => v.id !== vehicleId));
+        setTelemetry(({ [vehicleId]: _removed, ...rest }) => rest);
+        void fetchData();
+    }, [fetchData]);
+
     useEffect(() => {
         fetchData();
         const interval = setInterval(() => {
@@ -83,5 +112,6 @@ export function useFleetData(pollingIntervalMs: number = 5000) {
         vehicles, telemetry, assessment, loading, error, simulationError, dataStatus,
         readingTime, lastFetchedAt, historyVersion,
         isSimulating, refetch: fetchData, runSimulation, runBatchSimulation, getSimulationHistory,
+        createVehicle, updateVehicle, deleteVehicle,
     };
 }

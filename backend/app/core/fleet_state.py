@@ -105,17 +105,10 @@ MOCK_FLEET: dict[str, Vehicle] = {
     ),
 }
 
-VEHICLE_HISTORY: dict[str, list[VehicleHistoryEntry]] = {
-    vid: [
-        VehicleHistoryEntry(current_soc=v.current_soc, current_soh=v.current_soh, status=v.status)
-    ]
-    for vid, v in MOCK_FLEET.items()
-}
+# Demo vehicles start without history; entries are recorded from their first state change.
+VEHICLE_HISTORY: dict[str, list[VehicleHistoryEntry]] = {}
 LATEST_TELEMETRY: dict[str, TelemetryEvent] = {}
 TELEMETRY_HISTORY: dict[str, list[TelemetryEvent]] = {}
-
-
-DEMO_FLEET = list(MOCK_FLEET.values())
 
 
 def restore() -> None:
@@ -125,19 +118,21 @@ def restore() -> None:
         raise RuntimeError("Fleet database is not open")
     vehicles = {
         vehicle.id: vehicle
-        for (payload,) in db.execute("SELECT payload FROM vehicles ORDER BY rowid")
+        for (payload,) in db.execute("SELECT payload FROM vehicles ORDER BY rowid").fetchall()
         for vehicle in [Vehicle.model_validate_json(payload)]
     }
     histories: dict[str, list[VehicleHistoryEntry]] = {}
     for vehicle_id, payload in db.execute(
         "SELECT vehicle_id, payload FROM vehicle_history ORDER BY id"
-    ):
+    ).fetchall():
         histories.setdefault(vehicle_id, []).append(
             VehicleHistoryEntry.model_validate_json(payload)
         )
     events: dict[str, list[TelemetryEvent]] = {}
     latest: dict[str, TelemetryEvent] = {}
-    for vehicle_id, payload in db.execute("SELECT vehicle_id, payload FROM telemetry ORDER BY id"):
+    for vehicle_id, payload in db.execute(
+        "SELECT vehicle_id, payload FROM telemetry ORDER BY id"
+    ).fetchall():
         event = TelemetryEvent.model_validate_json(payload)
         events.setdefault(vehicle_id, []).append(event)
         if vehicle_id not in latest or event.timestamp >= latest[vehicle_id].timestamp:

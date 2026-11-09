@@ -1,4 +1,4 @@
-// One-off generator for src/routeData.ts. Fetches the Portland -> Bend road (OSRM) and its
+// One-off generator for src/routeData.ts. Fetches the Manila -> Baguio road (OSRM) and its
 // elevation (OpenTopoData SRTM90), then writes a static module the app imports.
 // Usage: node apps/web/scripts/build-route-data.mjs          (fetch and write)
 //        node apps/web/scripts/build-route-data.mjs --check [file]  (validate the committed file)
@@ -10,23 +10,26 @@ import { pathToFileURL } from 'node:url';
 const OUTPUT = new URL('../src/routeData.ts', import.meta.url);
 const SAMPLE_KM = 2;
 
-// [name, lat, lon]; Government Camp and Madras force the Mt Hood (US-26 / US-97) corridor.
+// [name, lat, lon]; Agoo and Tubao force Marcos Highway (Aspiras–Palispis Highway, Agoo -> Tubao
+// -> Pugo -> Tuba -> Baguio) instead of the Rosario–Pugo shortcut or Kennon Road.
 const WAYPOINTS = [
-    ['Portland', 45.5231, -122.6765],
-    ['Sandy', 45.3973, -122.2612],
-    ['Government Camp', 45.302, -121.759],
-    ['Warm Springs', 44.7629, -121.2668],
-    ['Madras', 44.6332, -121.129],
-    ['Redmond', 44.2726, -121.1739],
-    ['Bend', 44.0582, -121.3153],
+    ['Manila', 14.5826, 120.9787],
+    ['San Fernando', 15.0283, 120.6938],
+    ['Urdaneta', 15.976, 120.5669],
+    ['Rosario', 16.2299, 120.4877],
+    ['Agoo', 16.3224, 120.367],
+    ['Tubao', 16.347, 120.4126],
+    ['Pugo', 16.3203, 120.4674],
+    ['Tuba', 16.3924, 120.5601],
+    ['Baguio', 16.408, 120.596],
 ];
-const VIA = ['Portland', 'Government Camp', 'Madras', 'Bend'];
+const VIA = ['Manila', 'Agoo', 'Tubao', 'Baguio'];
 
-// Generic placeholders, not real operators; availability is illustrative.
+// Generic placeholders, not real operators; availability and peso fees are illustrative.
 const STATIONS = [
-    { id: 'CS-01', name: 'Sample charger A', near: 'Government Camp', powerKw: 150, type: 'DC Fast (150kW)', fee: '$0.38/kWh', available: 3, total: 4 },
-    { id: 'CS-02', name: 'Sample charger B', near: 'Madras', powerKw: 350, type: 'Ultra-Fast (350kW)', fee: '$0.44/kWh', available: 1, total: 2 },
-    { id: 'CS-03', name: 'Sample charger C', near: 'Redmond', powerKw: 50, type: 'Level 2 (50kW)', fee: '$0.28/kWh', available: 5, total: 6 },
+    { id: 'CS-01', name: 'Sample charger A', near: 'San Fernando', powerKw: 150, type: 'DC Fast (150kW)', fee: '₱28/kWh', available: 3, total: 4 },
+    { id: 'CS-02', name: 'Sample charger B', near: 'Rosario', powerKw: 350, type: 'Ultra-Fast (350kW)', fee: '₱34/kWh', available: 1, total: 2 },
+    { id: 'CS-03', name: 'Sample charger C', near: 'Pugo', powerKw: 50, type: 'Level 2 (50kW)', fee: '₱22/kWh', available: 5, total: 6 },
 ];
 
 function haversineKm([lat1, lon1], [lat2, lon2]) {
@@ -132,6 +135,8 @@ async function build() {
     const waypoints = WAYPOINTS.map(([name, lat, lon]) => {
         const km = Math.round(nearestKm(lat, lon) * 10) / 10;
         const [plat, plon] = pointAtKm(points, cum, km);
+        const offRoadKm = haversineKm([plat, plon], [lat, lon]);
+        if (offRoadKm > 3) console.warn(`${name} is ${offRoadKm.toFixed(1)} km from the road; check the route`);
         return { name, lat: +plat.toFixed(5), lon: +plon.toFixed(5), distanceKm: km, elevationM: elevationAt(km) };
     });
     const stations = STATIONS.map(({ near, ...station }) => {

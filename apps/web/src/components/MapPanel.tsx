@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LeafletMouseEvent, Map as LeafletMap } from 'leaflet';
 import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import type { TelemetryEvent } from '@fleet/api-client';
@@ -16,7 +16,8 @@ interface MapPanelProps {
     onProgressChange?: (progress: number) => void;
 }
 
-const LABELLED_WAYPOINTS = new Set(['Portland', 'Government Camp', 'Bend']);
+// Pugo and Tuba sit within ~15 km of Baguio, so their labels would overlap at the default zoom.
+const LABELLED_WAYPOINTS = new Set(['Manila', 'Baguio']);
 
 // Cumulative length along the route; equirectangular is accurate enough at this scale.
 const CUMULATIVE = ROUTE_GEOMETRY.reduce<number[]>((cum, [lat, lon], i) => {
@@ -73,11 +74,30 @@ function PanToSelection({ id, position }: { id: string | null; position: [number
     return null;
 }
 
+// Leaflet measures its container once; re-measure whenever the panel resizes (full screen, grid growth),
+// and re-frame the whole route when full screen opens or closes.
+function FitToContainer({ full }: { full: boolean }) {
+    const map = useMap();
+    useEffect(() => {
+        const observer = new ResizeObserver(() => map.invalidateSize());
+        observer.observe(map.getContainer());
+        return () => observer.disconnect();
+    }, [map]);
+    const first = useRef(true);
+    useEffect(() => {
+        if (first.current) { first.current = false; return; }
+        // Wait a frame so the new size is applied before fitting.
+        const id = requestAnimationFrame(() => { map.invalidateSize(); map.fitBounds(ROUTE_GEOMETRY, { padding: [16, 16] }); });
+        return () => cancelAnimationFrame(id);
+    }, [map, full]);
+    return null;
+}
+
 // Module-level so the ref keeps its identity and runs once, not on every render.
 // Leaflet's container is a role-less div, and ARIA prohibits aria-label on generic elements.
 const labelMap = (map: LeafletMap | null) => {
     map?.getContainer().setAttribute('role', 'region');
-    map?.getContainer().setAttribute('aria-label', 'Route map, Portland to Bend');
+    map?.getContainer().setAttribute('aria-label', 'Route map, Manila to Baguio via Marcos Highway');
 };
 
 const socColor = (soc: number) => soc > 60 ? '#10b981' : soc > 30 ? '#f59e0b' : '#ef4444';
@@ -107,13 +127,50 @@ export function MapPanel({
     });
     const unreported = vehicles.filter(v => !positioned.some(p => p.vehicle.id === v.id));
 
+    // Full screen: the native API on the panel, or a fixed overlay where the API is missing.
+    const panelRef = useRef<HTMLDivElement>(null);
+    const [overlay, setOverlay] = useState(false);
+    const [nativeFull, setNativeFull] = useState(false);
+    const isFull = overlay || nativeFull;
+    useEffect(() => {
+        const sync = () => setNativeFull(document.fullscreenElement === panelRef.current);
+        document.addEventListener('fullscreenchange', sync);
+        return () => document.removeEventListener('fullscreenchange', sync);
+    }, []);
+    useEffect(() => {
+        if (!overlay) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOverlay(false); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [overlay]);
+    const toggleFull = () => {
+        if (nativeFull) void document.exitFullscreen();
+        else if (overlay) setOverlay(false);
+        else if (panelRef.current?.requestFullscreen) panelRef.current.requestFullscreen().catch(() => setOverlay(true));
+        else setOverlay(true);
+    };
+
     return (
-        <div className="map-panel" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
+        <div ref={panelRef} className={overlay ? 'map-panel map-panel--full' : 'map-panel'} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
             <div className="panel-header" style={{ padding: '8px 12px' }}>
-                <h3 className="panel-title">ROUTE MAP — PORTLAND → BEND</h3>
-                <span className="panel-badge" style={{ color: 'var(--accent-cyan)' }}>
-                    {dataStatus === 'live' ? 'REPORTED POSITIONS' : dataStatus === 'cached' ? 'SAVED POSITIONS' : 'DEMO POSITIONS'}
-                </span>
+                <h3 className="panel-title">ROUTE MAP — MANILA → BAGUIO</h3>
+                <div className="map-panel-actions">
+                    <span className="panel-badge" style={{ color: 'var(--accent-cyan)' }}>
+                        {dataStatus === 'live' ? 'REPORTED POSITIONS' : dataStatus === 'cached' ? 'SAVED POSITIONS' : 'DEMO POSITIONS'}
+                    </span>
+                    <button
+                        type="button"
+                        className="map-fullscreen-btn"
+                        aria-label={isFull ? 'Exit full screen' : 'Show map full screen'}
+                        title={isFull ? 'Exit full screen (Esc)' : 'Full screen'}
+                        aria-pressed={isFull}
+                        onClick={toggleFull}
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d={isFull ? 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5' : 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'} />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <MapContainer
@@ -123,6 +180,7 @@ export function MapPanel({
                 attributionControl
                 ref={labelMap}
             >
+                <FitToContainer full={isFull} />
                 <PanToSelection
                     id={selectedVehicleId}
                     position={positioned.find(p => p.vehicle.id === selectedVehicleId)?.position ?? null}
@@ -173,7 +231,7 @@ export function MapPanel({
                         <Popup>
                             <strong>{st.name}</strong> (sample)<br />
                             {st.type} · {st.fee}<br />
-                            {st.available}/{st.total} available (sample) · {st.distanceKm} km from Portland
+                            {st.available}/{st.total} available (sample) · {st.distanceKm} km from Manila
                         </Popup>
                     </CircleMarker>
                 ))}

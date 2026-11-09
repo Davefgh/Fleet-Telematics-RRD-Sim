@@ -84,7 +84,7 @@ export function ChargingPanel({
 
                             <div className="charging-station-details">
                                 <span className="charging-detail">
-                                    📍 {st.distanceKm} km from Portland
+                                    📍 {st.distanceKm} km from Manila
                                 </span>
                                 {chargeTime !== null && (
                                     <span className="charging-detail" style={{ color: 'var(--accent-cyan)' }}>

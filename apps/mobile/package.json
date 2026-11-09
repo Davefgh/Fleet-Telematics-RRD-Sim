@@ -20,6 +20,7 @@
     "react-native-safe-area-context": "^5.11.1"
   },
   "devDependencies": {
+    "@react-native/codegen": "0.88.1",
     "@types/react": "~19.3.0",
     "typescript": "~6.0.3"
   },

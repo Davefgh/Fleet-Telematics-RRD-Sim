@@ -15,5 +15,8 @@
   },
   "dependencies": {
     "invariant": "^2.2.4"
+  },
+  "devDependencies": {
+    "@react-native/codegen": "0.88.1"
   }
 }

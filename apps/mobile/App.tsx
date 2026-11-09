@@ -23,38 +23,16 @@ import {
 
 const fallbackVehicles: Vehicle[] = [
   {
-    id: "v-transit-01",
-    name: "Transit Van Alpha",
-    model: "Ford E-Transit (High Roof)",
-    battery_capacity_kwh: 68,
-    baseline_efficiency_wh_km: 260,
-    current_soc: 82,
-    current_soh: 98,
-    status: "ACTIVE",
-    state_source: "vehicle_defaults",
-    state_timestamp: null,
-  },
-  {
-    id: "v-edv-02",
-    name: "Rivian Prime 700",
-    model: "Rivian Commercial EDV",
-    battery_capacity_kwh: 135,
-    baseline_efficiency_wh_km: 380,
-    current_soc: 44,
-    current_soh: 96,
-    status: "ACTIVE",
-    state_source: "vehicle_defaults",
-    state_timestamp: null,
-  },
-  {
-    id: "v-sprinter-03",
-    name: "Urban Sprinter Gamma",
-    model: "Mercedes eSprinter Cargo",
-    battery_capacity_kwh: 113,
-    baseline_efficiency_wh_km: 310,
-    current_soc: 18,
-    current_soh: 99,
-    status: "IDLE",
+    id: "DL641",
+    name: "VANZ",
+    model: "Kia EV6 Long Range",
+    battery_capacity_kwh: 74,
+    baseline_efficiency_wh_km: 175,
+    curb_mass_kg: 2000,
+    regen_efficiency: 0.6,
+    current_soc: 80,
+    current_soh: 100,
+    status: "AVAILABLE",
     state_source: "vehicle_defaults",
     state_timestamp: null,
   },
@@ -62,7 +40,7 @@ const fallbackVehicles: Vehicle[] = [
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [currentTab, setCurrentTab] = useState<TabType>("simulator");
+  const [currentTab, setCurrentTab] = useState<TabType>("dashboard");
   const [vehicles, setVehicles] = useState<Vehicle[]>(fallbackVehicles);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(fallbackVehicles[0]);
   const [assessment, setAssessment] = useState<SimulationAssessment | null>(null);
@@ -256,6 +234,7 @@ export default function App() {
           {currentTab === "dashboard" && (
             <DashboardScreen
               vehicles={vehicles}
+              selectedVehicle={selectedVehicle}
               onNavigateTab={setCurrentTab}
               onSelectVehicle={setSelectedVehicle}
               refreshing={refreshing}

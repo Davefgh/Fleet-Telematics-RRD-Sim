@@ -4,3 +4,4 @@ export * from "./SimulatorScreen";
 export * from "./AlertsScreen";
 export * from "./MoreScreen";
 export * from "./AuthScreen";
+export * from "./GarageScreen";

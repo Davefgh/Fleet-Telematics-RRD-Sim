@@ -38,6 +38,12 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
       inactiveIcon: "car-outline",
     },
     {
+      id: "garage",
+      label: "Garage",
+      activeIcon: "garage-open-variant",
+      inactiveIcon: "garage-variant",
+    },
+    {
       id: "simulator",
       label: "Simulator",
       activeIcon: "leaf-circle",

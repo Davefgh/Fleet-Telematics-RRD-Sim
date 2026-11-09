@@ -3,7 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { AppState, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { FleetApiError, getSimulationVehicleProfile } from "@fleet/api-client";
-import type { SimulationAssessment, SimulationRequest, SimulationResponse, Vehicle } from "@fleet/api-client";
+import type { BatchSimulationResult, SimulationAssessment, SimulationRecord, SimulationRequest, SimulationResponse, Vehicle, VehicleCreate } from "@fleet/api-client";
 
 import { client } from "./src/config/api";
 import { colors } from "./src/constants/theme";
@@ -11,6 +11,7 @@ import { BottomNavBar, type TabType } from "./src/navigation";
 import {
   DashboardScreen,
   FleetScreen,
+  GarageScreen,
   SimulatorScreen,
   AlertsScreen,
   MoreScreen,
@@ -206,6 +207,26 @@ export default function App() {
     setCurrentTab("simulator");
   };
 
+  const handleCreateVehicle = async (payload: VehicleCreate): Promise<Vehicle> => {
+    const created = await client.createVehicle(payload);
+    setVehicles((prev) => [...prev, created]);
+    setSelectedVehicle(created);
+    void loadVehicles(false);
+    return created;
+  };
+
+  const handleRunBatchSimulation = async (
+    params: Omit<Required<SimulationRequest>, "vehicle_id">,
+    vehicleIds: string[]
+  ): Promise<BatchSimulationResult[]> => {
+    const res = await client.runBatchSimulation({ ...params, vehicle_ids: vehicleIds });
+    return res.results;
+  };
+
+  const handleLoadSimHistory = async (): Promise<SimulationRecord[]> => {
+    return client.getSimulationHistory();
+  };
+
   if (!currentUser) {
     return (
       <SafeAreaProvider>
@@ -253,12 +274,26 @@ export default function App() {
             />
           )}
 
+          {currentTab === "garage" && (
+            <GarageScreen
+              vehicles={vehicles}
+              selectedId={selectedVehicle?.id ?? null}
+              onSelect={(id) => {
+                const v = vehicles.find((v) => v.id === id);
+                if (v) setSelectedVehicle(v);
+              }}
+              onCreate={handleCreateVehicle}
+            />
+          )}
+
           {currentTab === "simulator" && (
             <SimulatorScreen
               vehicles={vehicles}
               selectedVehicle={selectedVehicle}
               onSelectVehicle={setSelectedVehicle}
               onRunSimulation={handleRunSimulation}
+              onRunBatchSimulation={handleRunBatchSimulation}
+              onLoadSimHistory={handleLoadSimHistory}
               assessment={assessment}
               loading={loading}
               error={error}

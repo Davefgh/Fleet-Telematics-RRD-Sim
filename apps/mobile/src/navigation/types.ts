@@ -1,4 +1,4 @@
-export type TabType = "dashboard" | "fleet" | "simulator" | "alerts" | "more";
+export type TabType = "dashboard" | "fleet" | "garage" | "simulator" | "alerts" | "more";
 
 export interface TabItem {
   id: TabType;

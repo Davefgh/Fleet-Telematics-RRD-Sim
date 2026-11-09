@@ -13,6 +13,8 @@ import {
   FleetScreen,
   GarageScreen,
   SimulatorScreen,
+  RouteScreen,
+  BatteryScreen,
   AlertsScreen,
   MoreScreen,
   AuthScreen,
@@ -204,7 +206,7 @@ export default function App() {
 
   const handleSimulateWithVehicle = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
-    setCurrentTab("simulator");
+    setCurrentTab("planner");
   };
 
   const handleCreateVehicle = async (payload: VehicleCreate): Promise<Vehicle> => {
@@ -261,7 +263,7 @@ export default function App() {
             />
           )}
 
-          {currentTab === "fleet" && (
+          {(currentTab === "vehicles" || currentTab === "fleet") && (
             <FleetScreen
               vehicles={vehicles}
               selectedVehicle={selectedVehicle}
@@ -286,7 +288,7 @@ export default function App() {
             />
           )}
 
-          {currentTab === "simulator" && (
+          {(currentTab === "planner" || currentTab === "simulator") && (
             <SimulatorScreen
               vehicles={vehicles}
               selectedVehicle={selectedVehicle}
@@ -299,6 +301,22 @@ export default function App() {
               error={error}
               refreshing={refreshing}
               onRefresh={handleRefresh}
+            />
+          )}
+
+          {currentTab === "route" && (
+            <RouteScreen
+              vehicles={vehicles}
+              selectedVehicle={selectedVehicle}
+              onSelectVehicle={setSelectedVehicle}
+            />
+          )}
+
+          {currentTab === "battery" && (
+            <BatteryScreen
+              vehicles={vehicles}
+              selectedVehicle={selectedVehicle}
+              onSelectVehicle={setSelectedVehicle}
             />
           )}
 

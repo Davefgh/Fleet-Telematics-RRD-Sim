@@ -2,7 +2,6 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../constants/theme";
 import type { TabType } from "./types";
 
 interface BottomNavBarProps {
@@ -14,53 +13,58 @@ interface BottomNavBarProps {
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   currentTab,
   onSelectTab,
-  alertCount = 3,
 }) => {
   const insets = useSafeAreaInsets();
 
+  // Exactly mirrors web's Sidebar.tsx PAGES
   const tabs: {
     id: TabType;
     label: string;
     activeIcon: keyof typeof MaterialCommunityIcons.glyphMap;
     inactiveIcon: keyof typeof MaterialCommunityIcons.glyphMap;
-    showBadge?: boolean;
+    matches: TabType[];
   }[] = [
     {
       id: "dashboard",
       label: "Dashboard",
       activeIcon: "view-dashboard",
       inactiveIcon: "view-dashboard-outline",
+      matches: ["dashboard"],
     },
     {
-      id: "fleet",
-      label: "Fleet",
-      activeIcon: "car",
-      inactiveIcon: "car-outline",
+      id: "vehicles",
+      label: "Vehicles",
+      activeIcon: "truck",
+      inactiveIcon: "truck-outline",
+      matches: ["vehicles", "fleet"],
     },
     {
       id: "garage",
       label: "Garage",
       activeIcon: "garage-open-variant",
       inactiveIcon: "garage-variant",
+      matches: ["garage"],
     },
     {
-      id: "simulator",
-      label: "Simulator",
-      activeIcon: "leaf-circle",
-      inactiveIcon: "leaf-circle-outline",
+      id: "planner",
+      label: "Trip planner",
+      activeIcon: "checkbox-marked-circle",
+      inactiveIcon: "checkbox-marked-circle-outline",
+      matches: ["planner", "simulator"],
     },
     {
-      id: "alerts",
-      label: "Alerts",
-      activeIcon: "bell",
-      inactiveIcon: "bell-outline",
-      showBadge: alertCount > 0,
+      id: "route",
+      label: "Route & charging",
+      activeIcon: "map",
+      inactiveIcon: "map-outline",
+      matches: ["route"],
     },
     {
-      id: "more",
-      label: "More",
-      activeIcon: "menu",
-      inactiveIcon: "menu",
+      id: "battery",
+      label: "Battery",
+      activeIcon: "battery-charging",
+      inactiveIcon: "battery-charging-outline",
+      matches: ["battery"],
     },
   ];
 
@@ -68,41 +72,38 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     <View
       style={[
         styles.container,
-        { paddingBottom: Math.max(insets.bottom, 8) },
+        { paddingBottom: Math.max(insets.bottom, 6) },
       ]}
     >
       <View style={styles.navRow}>
         {tabs.map((tab) => {
-          const isActive = currentTab === tab.id;
-          const iconColor = isActive ? colors.navActive : colors.navInactive;
+          const isActive = tab.matches.includes(currentTab);
+          const iconColor = isActive ? "#00C2FF" : "#9AA8BD";
           const iconName = isActive ? tab.activeIcon : tab.inactiveIcon;
 
           return (
             <TouchableOpacity
               key={tab.id}
-              style={styles.tabItem}
+              style={[styles.tabItem, isActive && styles.tabItemActive]}
               onPress={() => onSelectTab(tab.id)}
               activeOpacity={0.7}
             >
+              {isActive && <View style={styles.topIndicator} />}
               <View style={styles.iconWrapper}>
                 <MaterialCommunityIcons
                   name={iconName}
-                  size={24}
+                  size={21}
                   color={iconColor}
                 />
-                {tab.showBadge && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {alertCount > 9 ? "9+" : alertCount}
-                    </Text>
-                  </View>
-                )}
               </View>
               <Text
                 style={[
                   styles.tabLabel,
-                  { color: iconColor, fontWeight: isActive ? "600" : "400" },
+                  isActive ? styles.tabLabelActive : styles.tabLabelInactive,
                 ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
               >
                 {tab.label}
               </Text>
@@ -116,51 +117,55 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.navBg,
+    backgroundColor: "#0D1321", // web --bg-secondary
     borderTopWidth: 1,
-    borderTopColor: colors.navBorder,
-    paddingTop: 8,
+    borderTopColor: "#1E2D3D", // web --border-color
+    paddingTop: 4,
   },
   navRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
+    paddingHorizontal: 4,
   },
   tabItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 2,
+    borderRadius: 8,
+    position: "relative",
+  },
+  tabItemActive: {
+    backgroundColor: "rgba(0, 194, 255, 0.12)", // web .sidebar-link--active
+  },
+  topIndicator: {
+    position: "absolute",
+    top: -4,
+    left: "20%",
+    right: "20%",
+    height: 2,
+    backgroundColor: "#00C2FF", // web --accent-cyan
+    borderRadius: 1,
   },
   iconWrapper: {
-    position: "relative",
-    width: 28,
-    height: 28,
     alignItems: "center",
     justifyContent: "center",
+    height: 24,
   },
   tabLabel: {
-    fontSize: 11,
-    marginTop: 4,
+    fontSize: 9.5,
+    marginTop: 2,
+    textAlign: "center",
     letterSpacing: 0.1,
   },
-  badge: {
-    position: "absolute",
-    top: -3,
-    right: -7,
-    backgroundColor: colors.riskDanger,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: colors.navBg,
-  },
-  badgeText: {
-    color: "#FFFFFF",
-    fontSize: 9,
+  tabLabelActive: {
+    color: "#00C2FF", // web --accent-cyan
     fontWeight: "700",
+  },
+  tabLabelInactive: {
+    color: "#9AA8BD", // web --text-secondary
+    fontWeight: "500",
   },
 });

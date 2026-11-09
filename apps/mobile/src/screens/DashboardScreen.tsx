@@ -281,7 +281,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
       <TouchableOpacity
         style={styles.banner}
-        onPress={() => onNavigateTab("simulator")}
+        onPress={() => onNavigateTab("planner")}
         activeOpacity={0.8}
       >
         <View style={styles.bannerLeft}>
@@ -304,7 +304,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
       {/* ── Fleet Battery Snapshots ──────────────────────────────── */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Fleet Battery Snapshots</Text>
-        <TouchableOpacity onPress={() => onNavigateTab("fleet")}>
+        <TouchableOpacity onPress={() => onNavigateTab("vehicles")}>
           <Text style={styles.sectionLink}>View All ({total})</Text>
         </TouchableOpacity>
       </View>
@@ -324,7 +324,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
               style={styles.vehicleRow}
               onPress={() => {
                 onSelectVehicle(vehicle);
-                onNavigateTab("fleet");
+                onNavigateTab("vehicles");
               }}
               activeOpacity={0.7}
             >
